@@ -1,12 +1,15 @@
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ExternalLink, LifeBuoy, List, Minus, Plus, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  ArrowLeft, ArrowUp, ExternalLink, Flame, Inbox, LayoutList, LifeBuoy, List, Mail, Minus, Plus, Rocket, ShieldCheck, ThumbsDown, ThumbsUp, Upload, X,
+  type LucideIcon,
+} from "lucide-react";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createMunchmateGuestTicket, createMunchmateTicket, munchmateChat } from "@/lib/munchmate.functions";
 import { isAllowedLink } from "@/lib/munchmate/retrieval";
 import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_LABEL, SUPPORT_PRIORITIES, SUPPORT_PRIORITY_LABEL } from "@/lib/support-model";
-import { MunchMateMascot } from "./MunchMateMascot";
+import { MunchMateMascot, type MascotMood } from "./MunchMateMascot";
 
 type Msg = {
   id: string;
@@ -20,16 +23,19 @@ type Msg = {
 type Thread = { id: string; title: string; updatedAt: string; messages: Msg[]; ticketRef?: string };
 
 const STORE = "munchmate.threads.v1";
-const GREETING = "Hey! I'm MunchMate 👋\nYour MunchReach assistant. How can I help you today?";
-const SUGGESTIONS = [
-  "How do I create my first campaign?",
-  "How does email warmup work?",
-  "How do I connect my mailbox?",
-  "How can I improve email deliverability?",
-  "How do I import leads?",
-  "How does Unibox work?",
-  "How do I manage my campaigns?",
+/** Label shown on the card → question actually sent (unchanged prompts for retrieval). */
+const SUGGESTIONS: Array<{ label: string; q: string; icon: LucideIcon }> = [
+  { label: "Create my first campaign", q: "How do I create my first campaign?", icon: Rocket },
+  { label: "Set up email warmup", q: "How does email warmup work?", icon: Flame },
+  { label: "Connect my mailbox", q: "How do I connect my mailbox?", icon: Mail },
+  { label: "Improve deliverability", q: "How can I improve email deliverability?", icon: ShieldCheck },
+  { label: "Import leads", q: "How do I import leads?", icon: Upload },
+  { label: "Explore Unibox", q: "How does Unibox work?", icon: Inbox },
+  { label: "Manage campaigns", q: "How do I manage my campaigns?", icon: LayoutList },
 ];
+/** Occasional, light personality while waiting — never added to answers. */
+const THINKING_LINES = ["Let's figure this out!", "Aha, I know where to look.", "One second, let me check the help docs.", "No worries, we've got this."];
+const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const uid = () => crypto.randomUUID();
 const newThread = (): Thread => ({ id: uid(), title: "New conversation", updatedAt: new Date().toISOString(), messages: [] });
@@ -67,19 +73,32 @@ function inline(text: string): ReactNode[] {
 }
 
 function RichText({ text }: { text: string }) {
-  const blocks = text.split(/\n{2,}/);
+  // Group consecutive list lines so mixed paragraphs + steps render cleanly.
+  const LIST = /^\s*([-*•]|\d+[.)])\s+/;
+  const groups: Array<{ kind: "p" | "ol" | "ul"; lines: string[] }> = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      groups.push({ kind: "p", lines: [] });
+      continue;
+    }
+    const kind = LIST.test(line) ? (/^\s*\d/.test(line) ? "ol" : "ul") : "p";
+    const last = groups[groups.length - 1];
+    if (last && last.kind === kind && (kind !== "p" || last.lines.length)) last.lines.push(line);
+    else groups.push({ kind, lines: [line] });
+  }
   return (
     <div className="space-y-2">
-      {blocks.map((b, i) => {
-        const lines = b.split("\n");
-        if (lines.every((l) => /^\s*([-*]|\d+[.)])\s+/.test(l))) {
-          const ordered = /^\s*\d/.test(lines[0] ?? "");
-          const items = lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*([-*]|\d+[.)])\s+/, ""))}</li>);
-          return ordered ? <ol key={i} className="list-decimal space-y-1 pl-5">{items}</ol> : <ul key={i} className="list-disc space-y-1 pl-5">{items}</ul>;
+      {groups.filter((g) => g.lines.length).map((g, i) => {
+        if (g.kind !== "p") {
+          const items = g.lines.map((l, j) => <li key={j} className="pl-0.5">{inline(l.replace(LIST, ""))}</li>);
+          return g.kind === "ol"
+            ? <ol key={i} className="list-decimal space-y-1 pl-5 marker:font-semibold marker:text-primary">{items}</ol>
+            : <ul key={i} className="list-disc space-y-1 pl-5 marker:text-primary">{items}</ul>;
         }
         return (
           <p key={i}>
-            {lines.map((l, j) => (
+            {g.lines.map((l, j) => (
               <Fragment key={j}>{j > 0 ? <br /> : null}{inline(l.replace(/^#+\s*/, ""))}</Fragment>
             ))}
           </p>
@@ -103,6 +122,9 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [thinkingLine, setThinkingLine] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState(0);
+  const mood: MascotMood | undefined = celebrate ? "happy" : busy ? "thinking" : undefined;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const active = threads.find((t) => t.id === activeId) ?? threads[0]!;
@@ -155,6 +177,7 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
       messages: history,
     }));
     setBusy(true);
+    setThinkingLine(Math.random() < 0.35 ? THINKING_LINES[Math.floor(Math.random() * THINKING_LINES.length)]! : null);
     try {
       const r = await chat({ data: { messages: history.map((m) => ({ role: m.role, content: m.content })) } });
       updateActive((t) => ({
@@ -171,6 +194,11 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
     }
   }
 
+  const cheer = () => {
+    setCelebrate(Date.now());
+    window.setTimeout(() => setCelebrate(0), 1800);
+  };
+
   const startNew = () => {
     const t = newThread();
     commit([t, ...threads.filter((x) => x.messages.length > 0)]);
@@ -180,38 +208,48 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
 
   if (!open) return null;
 
+  const iconBtn = "rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  const empty = active.messages.length === 0;
+
   return (
     <div
       role="dialog"
       aria-label="MunchMate chat"
-      className="munchmate-msg fixed inset-x-2 bottom-2 z-[61] flex h-[min(640px,calc(100dvh-1rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[390px]"
+      className="munchmate-msg fixed inset-x-2 bottom-2 z-[61] flex h-[min(660px,calc(100dvh-1rem))] flex-col overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-2xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[400px]"
     >
-      <header className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-mascot-body to-mascot-glow px-4 py-3 text-primary-foreground">
-        <span className="rounded-full bg-primary-foreground/15 p-0.5"><MunchMateMascot size={36} happy={busy} /></span>
+      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <span className={`relative flex size-11 shrink-0 items-center justify-center rounded-2xl bg-accent ${celebrate ? "munchmate-cheer" : ""}`}>
+          <MunchMateMascot size={38} mood={mood} lively={!busy} />
+        </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-tight">MunchMate</p>
-          <p className="truncate text-xs opacity-90">Your MunchReach AI Assistant</p>
+          <p className="text-sm font-semibold leading-tight text-foreground">MunchMate</p>
+          <p className="text-xs text-muted-foreground">Your MunchReach sidekick</p>
+          <p className="mt-0.5 flex items-center gap-1.5 text-[11px] font-medium text-success">
+            <span className="size-1.5 rounded-full bg-success shadow-[0_0_0_3px] shadow-success/20" /> Online
+          </p>
         </div>
-        <button type="button" onClick={() => setView(view === "list" ? "chat" : "list")} className="rounded-md p-1.5 hover:bg-primary-foreground/15" aria-label="Conversations"><List className="size-4" /></button>
-        <button type="button" onClick={startNew} className="rounded-md p-1.5 hover:bg-primary-foreground/15" aria-label="Start new conversation"><Plus className="size-4" /></button>
-        <button type="button" onClick={onClose} className="rounded-md p-1.5 hover:bg-primary-foreground/15" aria-label="Minimize chat"><Minus className="size-4" /></button>
-        <button
-          type="button"
-          onClick={() => {
-            startNew();
-            onClose();
-          }}
-          className="rounded-md p-1.5 hover:bg-primary-foreground/15"
-          aria-label="Close and end conversation"
-        >
-          <X className="size-4" />
-        </button>
+        <div className="flex items-center gap-0.5">
+          <button type="button" onClick={() => setView(view === "list" ? "chat" : "list")} className={iconBtn} aria-label="Conversations"><List className="size-4" /></button>
+          <button type="button" onClick={startNew} className={iconBtn} aria-label="Start new conversation"><Plus className="size-4" /></button>
+          <button type="button" onClick={onClose} className={iconBtn} aria-label="Minimize chat"><Minus className="size-4" /></button>
+          <button
+            type="button"
+            onClick={() => {
+              startNew();
+              onClose();
+            }}
+            className={iconBtn}
+            aria-label="Close and end conversation"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
       </header>
 
       {view === "list" ? (
         <div className="flex-1 overflow-y-auto p-2">
           {threads.map((t) => (
-            <div key={t.id} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${t.id === activeId ? "bg-accent" : "hover:bg-muted"}`}>
+            <div key={t.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-sm ${t.id === activeId ? "bg-accent" : "hover:bg-muted"}`}>
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setActiveId(t.id); setView("chat"); }}>
                 <p className="truncate font-medium">{t.title}</p>
                 <p className="text-xs text-muted-foreground">{new Date(t.updatedAt).toLocaleString()}{t.ticketRef ? ` · Ticket ${t.ticketRef}` : ""}</p>
@@ -260,97 +298,145 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
         />
       ) : (
         <>
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 text-sm" aria-live="polite">
-            <Bubble role="assistant"><RichText text={GREETING} /></Bubble>
-            {active.messages.length === 0 ? (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {SUGGESTIONS.map((s) => (
-                  <button key={s} type="button" onClick={() => void send(s)} className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-foreground transition-colors hover:border-primary hover:text-primary">
-                    {s}
-                  </button>
-                ))}
-              </div>
-            ) : null}
-            {active.messages.map((m) => (
-              <div key={m.id} className="munchmate-msg space-y-2">
-                <Bubble role={m.role}><RichText text={m.content} /></Bubble>
-                {m.role === "assistant" && m.sources?.length ? (
-                  <div className="space-y-1.5">
-                    {m.sources.map((s) => (
-                      <a key={s.url} href={s.url} className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs transition-colors hover:border-primary">
-                        <ExternalLink className="size-3.5 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate font-medium text-foreground">{s.title}</span>
-                          <span className="block truncate text-muted-foreground">munchreach.com{s.url}</span>
+          <div className="flex-1 overflow-y-auto bg-muted/40 px-4 py-4 text-sm" aria-live="polite">
+            {empty ? (
+              <div className="munchmate-msg space-y-4">
+                <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
+                  <span className="shrink-0"><MunchMateMascot size={56} mood="happy" /></span>
+                  <div className="min-w-0 space-y-1.5">
+                    <p className="font-semibold text-foreground">Hey there! 👋 I'm MunchMate.</p>
+                    <p className="leading-relaxed text-muted-foreground">
+                      Your MunchReach sidekick. Need help with a campaign, email warmup, or finding your way around?{" "}
+                      <span className="font-medium text-primary">I'm all ears!</span>
+                    </p>
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Popular questions</p>
+                  <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+                    {SUGGESTIONS.map(({ label, q, icon: Icon }) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => void send(q)}
+                        className="group flex items-center gap-2 rounded-xl border border-primary/15 bg-accent/70 px-3 py-2.5 text-left text-xs font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-accent hover:shadow-sm"
+                      >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-card text-primary shadow-sm transition-transform group-hover:scale-110">
+                          <Icon className="size-3.5" />
                         </span>
-                      </a>
+                        <span className="leading-snug">{label}</span>
+                      </button>
                     ))}
                   </div>
-                ) : null}
-                {m.role === "assistant" ? (
-                  <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
-                    <button type="button" aria-label="Helpful" aria-pressed={m.feedback === "up"} className={`rounded p-1 hover:text-foreground ${m.feedback === "up" ? "text-primary" : ""}`} onClick={() => updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "up" } : x)) }))}><ThumbsUp className="size-3.5" /></button>
-                    <button type="button" aria-label="Not helpful" aria-pressed={m.feedback === "down"} className={`rounded p-1 hover:text-foreground ${m.feedback === "down" ? "text-destructive" : ""}`} onClick={() => updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "down", offerTicket: true } : x)) }))}><ThumbsDown className="size-3.5" /></button>
-                    {m.offerTicket && !active.ticketRef ? (
-                      <>
-                        <button type="button" onClick={() => setView("ticket")} className="ml-1 rounded-full border border-border px-2.5 py-1 font-medium text-foreground hover:border-primary">Create Support Ticket</button>
-                        <button type="button" onClick={() => setView("ticket")} className="rounded-full border border-border px-2.5 py-1 font-medium text-foreground hover:border-primary">Talk to Human Support</button>
-                      </>
-                    ) : null}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {active.messages.map((m) => (
+                  <div key={m.id} className="munchmate-msg">
+                    {m.role === "user" ? (
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="w-fit max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-primary-foreground shadow-sm">{m.content}</div>
+                        <span className="pr-1 text-[10px] text-muted-foreground">{timeLabel(m.at)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <Avatar />
+                        <div className="min-w-0 max-w-[85%] space-y-2">
+                          <div className="rounded-2xl rounded-tl-md border border-border bg-card px-3.5 py-2.5 leading-relaxed text-foreground shadow-sm">
+                            <RichText text={m.content} />
+                          </div>
+                          {m.sources?.length ? (
+                            <div className="space-y-1.5">
+                              {m.sources.map((s) => (
+                                <a key={s.url} href={s.url} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs transition-colors hover:border-primary">
+                                  <ExternalLink className="size-3.5 shrink-0 text-primary" />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate font-medium text-foreground">{s.title}</span>
+                                    <span className="block truncate text-muted-foreground">munchreach.com{s.url}</span>
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          ) : null}
+                          <div className="flex flex-wrap items-center gap-1 text-[10px] text-muted-foreground">
+                            <span className="mr-1">{timeLabel(m.at)}</span>
+                            <button type="button" aria-label="Helpful" aria-pressed={m.feedback === "up"} className={`rounded p-1 hover:text-foreground ${m.feedback === "up" ? "text-primary" : ""}`} onClick={() => { if (m.feedback !== "up") cheer(); updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "up" } : x)) })); }}><ThumbsUp className="size-3.5" /></button>
+                            <button type="button" aria-label="Not helpful" aria-pressed={m.feedback === "down"} className={`rounded p-1 hover:text-foreground ${m.feedback === "down" ? "text-destructive" : ""}`} onClick={() => updateActive((t) => ({ ...t, messages: t.messages.map((x) => (x.id === m.id ? { ...x, feedback: "down", offerTicket: true } : x)) }))}><ThumbsDown className="size-3.5" /></button>
+                            {m.feedback === "up" ? <span className="text-primary">Mission accomplished! 🎉</span> : null}
+                          </div>
+                          {m.offerTicket && !active.ticketRef ? (
+                            <div className="flex flex-wrap gap-1.5 text-xs">
+                              <button type="button" onClick={() => setView("ticket")} className="rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:border-primary">Create Support Ticket</button>
+                              <button type="button" onClick={() => setView("ticket")} className="rounded-full border border-border bg-card px-2.5 py-1 font-medium text-foreground hover:border-primary">Talk to Human Support</button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {busy ? (
+                  <div className="munchmate-msg flex items-start gap-2">
+                    <Avatar mood="thinking" />
+                    <div className="rounded-2xl rounded-tl-md border border-border bg-card px-3.5 py-2.5 shadow-sm">
+                      {thinkingLine ? <p className="mb-1 text-xs text-muted-foreground">{thinkingLine}</p> : null}
+                      <span className="flex gap-1 py-1" aria-label="MunchMate is typing">
+                        {[0, 1, 2].map((i) => <span key={i} className="size-1.5 animate-bounce rounded-full bg-primary/60" style={{ animationDelay: `${i * 0.15}s` }} />)}
+                      </span>
+                    </div>
                   </div>
                 ) : null}
               </div>
-            ))}
-            {busy ? (
-              <Bubble role="assistant">
-                <span className="flex gap-1 py-1" aria-label="MunchMate is typing">
-                  {[0, 1, 2].map((i) => <span key={i} className="size-1.5 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: `${i * 0.15}s` }} />)}
-                </span>
-              </Bubble>
-            ) : null}
+            )}
             <div ref={endRef} />
           </div>
-          <form
-            className="flex items-end gap-2 border-t border-border p-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void send(input);
-            }}
-          >
-            <textarea
-              ref={inputRef}
-              rows={1}
-              value={input}
-              maxLength={2000}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  void send(input);
-                }
+          <div className="border-t border-border bg-card px-3 pb-2 pt-3">
+            <form
+              className="flex items-end gap-2 rounded-2xl border border-input bg-background p-1.5 pl-3 transition-shadow focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring/30"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void send(input);
               }}
-              placeholder="Ask about MunchReach…"
-              aria-label="Message MunchMate"
-              className="max-h-28 min-h-10 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <button type="submit" disabled={busy || !input.trim()} aria-label="Send message" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-opacity disabled:opacity-50">
-              <Send className="size-4" />
-            </button>
-          </form>
-          <p className="px-3 pb-2 text-center text-[11px] text-muted-foreground">
-            AI answers can be wrong. <button type="button" className="underline" onClick={() => setView("ticket")}>Contact support</button>
-          </p>
+            >
+              <textarea
+                ref={inputRef}
+                rows={1}
+                value={input}
+                maxLength={2000}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void send(input);
+                  }
+                }}
+                placeholder="Ask MunchMate anything..."
+                aria-label="Message MunchMate"
+                className="max-h-28 min-h-9 flex-1 resize-none bg-transparent py-2 text-sm focus-visible:outline-none"
+              />
+              <button type="submit" disabled={busy || !input.trim()} aria-label="Send message" className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-all hover:brightness-105 disabled:opacity-40">
+                <ArrowUp className="size-4" />
+              </button>
+            </form>
+            <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-muted-foreground">
+              <span>Powered by MunchReach AI · answers can be wrong</span>
+              <button type="button" className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setView("ticket")}>
+                <LifeBuoy className="size-3" /> Contact support
+              </button>
+            </div>
+          </div>
         </>
       )}
     </div>
   );
 }
 
-function Bubble({ role, children }: { role: "user" | "assistant"; children: ReactNode }) {
-  return role === "user" ? (
-    <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-primary px-3.5 py-2 text-primary-foreground">{children}</div>
-  ) : (
-    <div className="max-w-[92%] text-foreground">{children}</div>
+function Avatar({ mood }: { mood?: MascotMood }) {
+  return (
+    <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-accent">
+      <MunchMateMascot size={22} mood={mood} />
+    </span>
   );
 }
 
