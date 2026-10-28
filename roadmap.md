@@ -1,5 +1,10 @@
 # Roadmap
 
+## Help Center article management
+- [ ] Reuse guide article storage for Admin create/edit/draft/publish/preview and reversible deletion.
+- [ ] Connect the existing public Help Center and MunchMate indexing to the same published catalogue.
+- [ ] Add isolated regressions and verify preview; prepare owner-applied SQL without deploying.
+
 ## Compact warmup dashboard
 - [x] Remove summaries and extra columns; place four time filters above the mailbox table.
 - [x] Preserve evidence-only rates and add warning-gated Safe status separately from percentages; 132 isolated warmup regressions passed.
