@@ -111,7 +111,7 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
   const [signedIn, setSignedIn] = useState(false);
   const [thinkingLine, setThinkingLine] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState(0);
-  const mood: MascotMood = celebrate ? "happy" : busy ? "thinking" : "idle";
+  const mood: MascotMood | undefined = celebrate ? "happy" : busy ? "thinking" : undefined;
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const active = threads.find((t) => t.id === activeId) ?? threads[0]!;

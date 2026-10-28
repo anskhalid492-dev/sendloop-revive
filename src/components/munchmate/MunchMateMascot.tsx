@@ -14,7 +14,7 @@ export function MunchMateMascot({
   wave = false,
 }: {
   size?: number;
-  mood?: MascotMood;
+  mood?: MascotMood | undefined;
   lively?: boolean;
   wave?: boolean;
 }) {
