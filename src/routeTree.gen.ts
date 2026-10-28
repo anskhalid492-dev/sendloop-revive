@@ -135,6 +135,7 @@ import { Route as AuthenticatedMranuskhalidEmailLogRouteImport } from './routes/
 import { Route as AuthenticatedMranuskhalidEnvironmentRouteImport } from './routes/_authenticated/mranuskhalid/environment'
 import { Route as AuthenticatedMranuskhalidFaqsRouteImport } from './routes/_authenticated/mranuskhalid/faqs'
 import { Route as AuthenticatedMranuskhalidFeaturesRouteImport } from './routes/_authenticated/mranuskhalid/features'
+import { Route as AuthenticatedMranuskhalidHelpCenterRouteImport } from './routes/_authenticated/mranuskhalid/help-center'
 import { Route as AuthenticatedMranuskhalidInboundEventsRouteImport } from './routes/_authenticated/mranuskhalid/inbound-events'
 import { Route as AuthenticatedMranuskhalidInfrastructureRouteImport } from './routes/_authenticated/mranuskhalid/infrastructure'
 import { Route as AuthenticatedMranuskhalidIntegrationsRouteImport } from './routes/_authenticated/mranuskhalid/integrations'
@@ -910,6 +911,12 @@ const AuthenticatedMranuskhalidFeaturesRoute =
     path: '/features',
     getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
   } as any)
+const AuthenticatedMranuskhalidHelpCenterRoute =
+  AuthenticatedMranuskhalidHelpCenterRouteImport.update({
+    id: '/help-center',
+    path: '/help-center',
+    getParentRoute: () => AuthenticatedMranuskhalidRouteRoute,
+  } as any)
 const AuthenticatedMranuskhalidInboundEventsRoute =
   AuthenticatedMranuskhalidInboundEventsRouteImport.update({
     id: '/inbound-events',
@@ -1634,6 +1641,7 @@ export interface FileRoutesByFullPath {
   '/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
   '/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
   '/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/mranuskhalid/help-center': typeof AuthenticatedMranuskhalidHelpCenterRoute
   '/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
   '/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
   '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
@@ -1861,6 +1869,7 @@ export interface FileRoutesByTo {
   '/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
   '/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
   '/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/mranuskhalid/help-center': typeof AuthenticatedMranuskhalidHelpCenterRoute
   '/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
   '/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
   '/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
@@ -2093,6 +2102,7 @@ export interface FileRoutesById {
   '/_authenticated/mranuskhalid/environment': typeof AuthenticatedMranuskhalidEnvironmentRoute
   '/_authenticated/mranuskhalid/faqs': typeof AuthenticatedMranuskhalidFaqsRoute
   '/_authenticated/mranuskhalid/features': typeof AuthenticatedMranuskhalidFeaturesRoute
+  '/_authenticated/mranuskhalid/help-center': typeof AuthenticatedMranuskhalidHelpCenterRoute
   '/_authenticated/mranuskhalid/inbound-events': typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
   '/_authenticated/mranuskhalid/infrastructure': typeof AuthenticatedMranuskhalidInfrastructureRoute
   '/_authenticated/mranuskhalid/integrations': typeof AuthenticatedMranuskhalidIntegrationsRoute
@@ -2325,6 +2335,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/environment'
     | '/mranuskhalid/faqs'
     | '/mranuskhalid/features'
+    | '/mranuskhalid/help-center'
     | '/mranuskhalid/inbound-events'
     | '/mranuskhalid/infrastructure'
     | '/mranuskhalid/integrations'
@@ -2552,6 +2563,7 @@ export interface FileRouteTypes {
     | '/mranuskhalid/environment'
     | '/mranuskhalid/faqs'
     | '/mranuskhalid/features'
+    | '/mranuskhalid/help-center'
     | '/mranuskhalid/inbound-events'
     | '/mranuskhalid/infrastructure'
     | '/mranuskhalid/integrations'
@@ -2783,6 +2795,7 @@ export interface FileRouteTypes {
     | '/_authenticated/mranuskhalid/environment'
     | '/_authenticated/mranuskhalid/faqs'
     | '/_authenticated/mranuskhalid/features'
+    | '/_authenticated/mranuskhalid/help-center'
     | '/_authenticated/mranuskhalid/inbound-events'
     | '/_authenticated/mranuskhalid/infrastructure'
     | '/_authenticated/mranuskhalid/integrations'
@@ -3895,6 +3908,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMranuskhalidFeaturesRouteImport
       parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
     }
+    '/_authenticated/mranuskhalid/help-center': {
+      id: '/_authenticated/mranuskhalid/help-center'
+      path: '/help-center'
+      fullPath: '/mranuskhalid/help-center'
+      preLoaderRoute: typeof AuthenticatedMranuskhalidHelpCenterRouteImport
+      parentRoute: typeof AuthenticatedMranuskhalidRouteRoute
+    }
     '/_authenticated/mranuskhalid/inbound-events': {
       id: '/_authenticated/mranuskhalid/inbound-events'
       path: '/inbound-events'
@@ -4712,6 +4732,7 @@ interface AuthenticatedMranuskhalidRouteRouteChildren {
   AuthenticatedMranuskhalidEnvironmentRoute: typeof AuthenticatedMranuskhalidEnvironmentRoute
   AuthenticatedMranuskhalidFaqsRoute: typeof AuthenticatedMranuskhalidFaqsRoute
   AuthenticatedMranuskhalidFeaturesRoute: typeof AuthenticatedMranuskhalidFeaturesRoute
+  AuthenticatedMranuskhalidHelpCenterRoute: typeof AuthenticatedMranuskhalidHelpCenterRoute
   AuthenticatedMranuskhalidInboundEventsRoute: typeof AuthenticatedMranuskhalidInboundEventsRouteWithChildren
   AuthenticatedMranuskhalidInfrastructureRoute: typeof AuthenticatedMranuskhalidInfrastructureRoute
   AuthenticatedMranuskhalidIntegrationsRoute: typeof AuthenticatedMranuskhalidIntegrationsRoute
@@ -4787,6 +4808,8 @@ const AuthenticatedMranuskhalidRouteRouteChildren: AuthenticatedMranuskhalidRout
     AuthenticatedMranuskhalidFaqsRoute: AuthenticatedMranuskhalidFaqsRoute,
     AuthenticatedMranuskhalidFeaturesRoute:
       AuthenticatedMranuskhalidFeaturesRoute,
+    AuthenticatedMranuskhalidHelpCenterRoute:
+      AuthenticatedMranuskhalidHelpCenterRoute,
     AuthenticatedMranuskhalidInboundEventsRoute:
       AuthenticatedMranuskhalidInboundEventsRouteWithChildren,
     AuthenticatedMranuskhalidInfrastructureRoute:
