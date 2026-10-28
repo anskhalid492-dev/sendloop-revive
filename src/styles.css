@@ -88,6 +88,12 @@
   --mascot-body: oklch(0.62 0.16 245);
   --mascot-glow: oklch(0.82 0.13 205);
   --mascot-visor: oklch(0.22 0.05 250);
+  --mascot-skin: oklch(0.86 0.09 215);
+  --mascot-skin-light: oklch(0.96 0.04 210);
+  --mascot-skin-shade: oklch(0.72 0.12 228);
+  --mascot-ink: oklch(0.24 0.06 255);
+  --mascot-white: oklch(0.995 0.003 230);
+  --mascot-cheek: oklch(0.78 0.12 15);
   --primary-foreground: oklch(0.99 0.005 240);
   --secondary: oklch(0.968 0.015 235);
   --secondary-foreground: oklch(0.28 0.04 245);
@@ -612,4 +618,10 @@
 .munchmate-eyes { animation: munchmate-blink 4.5s infinite; transform-box: fill-box; transform-origin: center; }
 .munchmate-pop { animation: munchmate-pop 0.45s ease-out; }
 .munchmate-msg { animation: munchmate-in 0.22s ease-out; }
-@media (prefers-reduced-motion: reduce) { .munchmate-float, .munchmate-eyes, .munchmate-pop, .munchmate-msg { animation: none; } }
+@keyframes munchmate-wave { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-18deg) } 50% { transform: rotate(10deg) } 75% { transform: rotate(-12deg) } }
+@keyframes munchmate-bubble { from { opacity: 0; transform: translateY(8px) scale(.96) } to { opacity: 1; transform: none } }
+@keyframes munchmate-cheer { 0%,100% { transform: translateY(0) } 30% { transform: translateY(-6px) rotate(-4deg) } 60% { transform: translateY(0) rotate(3deg) } }
+.munchmate-wave { animation: munchmate-wave 1.2s ease-in-out; transform-box: view-box; }
+.munchmate-bubble { animation: munchmate-bubble 0.35s cubic-bezier(.2,1.2,.4,1); transform-origin: bottom right; }
+.munchmate-cheer { animation: munchmate-cheer 0.7s ease-out; }
+@media (prefers-reduced-motion: reduce) { .munchmate-wave, .munchmate-bubble, .munchmate-cheer, .munchmate-float, .munchmate-eyes, .munchmate-pop, .munchmate-msg { animation: none; } }
