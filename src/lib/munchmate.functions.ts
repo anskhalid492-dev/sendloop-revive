@@ -1,3 +1,4 @@
+import { MUNCHMATE_PUBLIC_PAGES } from "@/lib/munchmate/public-pages";
 /**
  * MunchMate — public website & product support assistant.
  *
@@ -36,7 +37,7 @@ export const DEFAULT_MUNCHMATE_CONFIG: MunchmateConfig = {
   temperature: 0.3,
   instructions: "",
   fallbackMessage: FALLBACK_ANSWER,
-  pages: ["/", "/pricing", "/features", "/warmup", "/supported-domain-providers", "/referral"],
+  pages: [...MUNCHMATE_PUBLIC_PAGES],
 };
 
 const CONFIG_KEY = "munchmate.config";
@@ -315,7 +316,7 @@ const configSchema = z.object({
   temperature: z.number().min(0).max(1),
   instructions: z.string().max(4000),
   fallbackMessage: z.string().trim().min(5).max(500),
-  pages: z.array(z.string().trim().max(300)).max(40),
+  pages: z.array(z.string().trim().max(300)).max(100),
 });
 
 export const saveMunchmateAdmin = createServerFn({ method: "POST" })

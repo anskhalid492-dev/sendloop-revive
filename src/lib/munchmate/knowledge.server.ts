@@ -81,24 +81,28 @@ async function collectSources(pages: string[]): Promise<Row[]> {
     });
   }
 
-  for (const page of pages.slice(0, 40)) {
-    if (!isAllowedLink(page)) continue;
-    const url = page.startsWith("/") ? `https://munchreach.com${page}` : page;
-    try {
-      const res = await fetch(url, { headers: { "user-agent": "MunchMate-Indexer" } });
-      if (!res.ok) continue;
-      const html = await res.text();
-      const title = /<title>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() || url;
-      rows.push({
-        source: "page",
-        source_key: `page:${new URL(url).pathname}`,
-        title,
-        url: new URL(url).pathname,
-        content: htmlToText(html).slice(0, 20000),
-      });
-    } catch {
-      /* skip unreachable page */
-    }
+  // Fetch in small batches so a long page list stays quick and light.
+  const list = pages.filter(isAllowedLink).slice(0, 100);
+  for (let i = 0; i < list.length; i += 8) {
+    const batch = await Promise.all(list.slice(i, i + 8).map(async (page): Promise<Row | null> => {
+      const url = page.startsWith("/") ? `https://munchreach.com${page}` : page;
+      try {
+        const res = await fetch(url, { headers: { "user-agent": "MunchMate-Indexer" } });
+        if (!res.ok) return null;
+        const html = await res.text();
+        const title = /<title>([^<]*)<\/title>/i.exec(html)?.[1]?.trim() || url;
+        return {
+          source: "page",
+          source_key: `page:${new URL(url).pathname}`,
+          title,
+          url: new URL(url).pathname,
+          content: htmlToText(html).slice(0, 20000),
+        };
+      } catch {
+        return null; /* skip unreachable page */
+      }
+    }));
+    for (const r of batch) if (r) rows.push(r);
   }
   return rows;
 }
