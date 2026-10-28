@@ -3,7 +3,8 @@
  * articles, published blog posts, published FAQs, public plans, and
  * admin-approved public MunchReach pages. Never reads customer tables.
  */
-import { HELP_ARTICLES } from "@/lib/help-center";
+import { readHelpCatalogue } from "@/lib/help-center-cms.server";
+import { publicContentClient } from "@/lib/trust-center.server";
 import { isAllowedLink, type KnowledgeDoc } from "@/lib/munchmate/retrieval";
 
 type Row = { source: string; source_key: string; title: string; url: string | null; content: string };
@@ -29,7 +30,8 @@ async function admin() {
 
 async function collectSources(pages: string[]): Promise<Row[]> {
   const db = await admin();
-  const rows: Row[] = HELP_ARTICLES.map((a) => ({
+  const helpArticles = await readHelpCatalogue(await publicContentClient());
+  const rows: Row[] = helpArticles.map((a) => ({
     source: "help",
     source_key: `help:${a.slug}`,
     title: a.title,
@@ -128,16 +130,20 @@ export async function refreshKnowledgeIndex(pages: string[]): Promise<{ indexed:
 /** Enabled knowledge, falling back to built-in help articles if the index is empty. */
 export async function loadKnowledge(): Promise<KnowledgeDoc[]> {
   const db = await admin();
+  const helpArticles = await readHelpCatalogue(await publicContentClient());
+  const publicHelpSlugs = new Set(helpArticles.map((a) => `help:${a.slug}`));
   const { data } = await db
     .from("munchmate_knowledge")
     .select("source_key, title, url, content")
     .eq("enabled", true)
     .limit(3000);
-  const docs = ((data ?? []) as Array<{ source_key: string; title: string; url: string | null; content: string }>).map(
+  const docs = ((data ?? []) as Array<{ source_key: string; title: string; url: string | null; content: string }>).filter(
+    (r) => !r.source_key.startsWith("help:") || publicHelpSlugs.has(r.source_key),
+  ).map(
     (r) => ({ key: r.source_key, title: r.title, url: r.url, content: r.content }),
   );
   if (docs.length) return docs;
-  return HELP_ARTICLES.map((a) => ({
+  return helpArticles.map((a) => ({
     key: `help:${a.slug}`,
     title: a.title,
     url: `/help-center/${a.slug}`,
