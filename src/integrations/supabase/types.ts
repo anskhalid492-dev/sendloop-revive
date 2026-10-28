@@ -6437,6 +6437,42 @@ export type Database = {
         }
         Relationships: []
       }
+      munchmate_knowledge: {
+        Row: {
+          content: string
+          created_at: string
+          enabled: boolean
+          id: string
+          source: string
+          source_key: string
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          source: string
+          source_key: string
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          source?: string
+          source_key?: string
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       newsletter_subscribers: {
         Row: {
           created_at: string
@@ -8708,6 +8744,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          ai_conversation: Json | null
           assigned_to: string | null
           category: string
           closed_at: string | null
@@ -8724,10 +8761,12 @@ export type Database = {
           staff_last_read_at: string | null
           status: string
           subject: string
+          ticket_ref: string | null
           updated_at: string
           workspace_id: string | null
         }
         Insert: {
+          ai_conversation?: Json | null
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
@@ -8744,10 +8783,12 @@ export type Database = {
           staff_last_read_at?: string | null
           status?: string
           subject: string
+          ticket_ref?: string | null
           updated_at?: string
           workspace_id?: string | null
         }
         Update: {
+          ai_conversation?: Json | null
           assigned_to?: string | null
           category?: string
           closed_at?: string | null
@@ -8764,6 +8805,7 @@ export type Database = {
           staff_last_read_at?: string | null
           status?: string
           subject?: string
+          ticket_ref?: string | null
           updated_at?: string
           workspace_id?: string | null
         }

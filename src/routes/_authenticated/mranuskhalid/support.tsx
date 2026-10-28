@@ -437,7 +437,8 @@ function TicketDetail({
           <div>
             <h2 className="text-lg font-semibold">{ticket.subject}</h2>
             <p className="text-xs text-muted-foreground">
-              {ticketReference(ticket.id)} · opened {timeOf(ticket.created_at)}
+              {ticket.ticket_ref ?? ticketReference(ticket.id)} · opened {timeOf(ticket.created_at)}
+              {ticket.source === "munchmate" ? " · via MunchMate" : ""}
             </p>
           </div>
           <Badge variant="outline" className={SUPPORT_PRIORITY_STYLE[ticket.priority]}>
@@ -448,8 +449,11 @@ function TicketDetail({
         <div className="grid gap-3 text-sm sm:grid-cols-3">
           <div>
             <p className="text-muted-foreground">Customer</p>
-            <p>{customer?.full_name || customer?.email || "Unknown"}</p>
-            <p className="text-xs text-muted-foreground">{customer?.email}</p>
+            <p>{customer?.full_name || ticket.contact_name || customer?.email || ticket.contact_email || "Unknown"}</p>
+            <p className="text-xs text-muted-foreground">
+              {customer?.email ?? ticket.contact_email}
+              {!ticket.created_by && ticket.contact_email ? " (guest — reply by email)" : ""}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground">Workspace</p>
@@ -521,6 +525,25 @@ function TicketDetail({
           </div>
         </div>
       </section>
+
+      {Array.isArray(ticket.ai_conversation) && ticket.ai_conversation.length > 0 ? (
+        <details className="surface-card p-5">
+          <summary className="cursor-pointer text-sm font-semibold">
+            Original MunchMate conversation ({ticket.ai_conversation.length} messages)
+          </summary>
+          <ul className="mt-3 space-y-2">
+            {(ticket.ai_conversation as Array<{ role: string; content: string; at?: string | null }>).map((m, i) => (
+              <li key={i} className={cn("rounded-lg border p-3 text-sm", m.role === "assistant" ? "border-primary/30 bg-primary/5" : "border-border bg-muted/30")}>
+                <p className="mb-1 text-xs font-medium text-muted-foreground">
+                  {m.role === "assistant" ? "MunchMate" : "Customer"}
+                  {m.at ? ` · ${timeOf(m.at)}` : ""}
+                </p>
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       <section className="surface-card space-y-3 p-5">
         <h3 className="text-sm font-semibold">Conversation</h3>

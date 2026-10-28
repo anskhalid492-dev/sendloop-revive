@@ -49,6 +49,7 @@ import {
   HelpCircle,
 
 
+  Bot,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -174,6 +175,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/billing", label: "Billing", icon: CreditCard },
       { to: "/mranuskhalid/billing-providers", label: "Billing Providers", icon: CreditCard },
       { to: "/mranuskhalid/support", label: "Support Tickets", icon: LifeBuoy },
+      { to: "/mranuskhalid/ai-support", label: "AI Support Settings", icon: Bot },
       { to: "/mranuskhalid/audit", label: "Change Audit Log", icon: Shield },
       { to: "/mranuskhalid/security", label: "Security & Sessions", icon: Shield },
       { to: "/mranuskhalid/logs", label: "Logs", icon: ScrollText },

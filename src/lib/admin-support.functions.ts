@@ -43,6 +43,10 @@ export type AdminTicket = {
   rating: number | null;
   rating_feedback: string | null;
   rated_at: string | null;
+  source?: string | null;
+  contact_email?: string | null;
+  contact_name?: string | null;
+  ticket_ref?: string | null;
 };
 
 /** Ratings keyed by ticket id. Tolerates the table not existing yet. */
@@ -86,7 +90,7 @@ export const listAdminTickets = createServerFn({ method: "GET" })
     let query = context.supabase
       .from("support_tickets")
       .select(
-        "id, subject, category, priority, status, created_at, last_message_at, assigned_to, created_by, workspace_id",
+        "id, subject, category, priority, status, created_at, last_message_at, assigned_to, created_by, workspace_id, source, contact_email, contact_name, ticket_ref",
       )
       .order("last_message_at", { ascending: false })
       .limit(200);
@@ -147,8 +151,8 @@ export const listAdminTickets = createServerFn({ method: "GET" })
       const rating = ratings.get(t.id) ?? null;
       return {
         ...t,
-        customer_email: profileMap.get(t.created_by)?.email ?? null,
-        customer_name: profileMap.get(t.created_by)?.full_name ?? null,
+        customer_email: profileMap.get(t.created_by)?.email ?? t.contact_email ?? null,
+        customer_name: profileMap.get(t.created_by)?.full_name ?? t.contact_name ?? null,
         assignee_email: t.assigned_to ? (profileMap.get(t.assigned_to)?.email ?? null) : null,
         workspace_name: t.workspace_id ? (workspaceMap.get(t.workspace_id) ?? null) : null,
         rating: rating?.rating ?? null,
@@ -194,7 +198,7 @@ export const getAdminTicket = createServerFn({ method: "GET" })
     const { data: ticket, error } = await context.supabase
       .from("support_tickets")
       .select(
-        "id, subject, category, priority, status, created_at, last_message_at, assigned_to, created_by, workspace_id",
+        "id, subject, category, priority, status, created_at, last_message_at, assigned_to, created_by, workspace_id, source, contact_email, contact_name, ticket_ref, ai_conversation",
       )
       .eq("id", data.id)
       .maybeSingle();

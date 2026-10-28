@@ -1,3 +1,4 @@
+import { MunchMateWidget } from "@/components/munchmate/MunchMateWidget";
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -396,6 +397,7 @@ function RootComponent() {
       <ThemeProvider>
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         {maintenance?.active ? <MaintenanceScreen message={maintenance.message} /> : <Outlet />}
+        {maintenance?.active ? null : <MunchMateWidget />}
         <CookieConsentBanner />
         <Toaster />
       </ThemeProvider>
