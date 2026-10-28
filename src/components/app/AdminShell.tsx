@@ -49,6 +49,7 @@ import {
   HelpCircle,
 
 
+  Bot,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
