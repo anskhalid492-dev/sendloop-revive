@@ -27,7 +27,7 @@ export const Route = createFileRoute("/_authenticated/mranuskhalid/help-center")
     { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
     { name: "robots", content: "noindex" },
   ] }),
-  errorComponent: ({ error }) => <div role="alert" className="space-y-3"><h1 className="text-2xl font-semibold">Help Center</h1><p className="text-sm text-destructive">{error.message}</p></div>,
+  errorComponent: ({ error }) => <div role="alert" className="space-y-3"><h1 className="text-2xl font-semibold">Help Center</h1><p className="text-sm text-destructive">{error instanceof Error ? error.message : "Articles could not be loaded"}</p></div>,
   component: HelpCenterAdmin,
 });
 
