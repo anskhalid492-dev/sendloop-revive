@@ -24,6 +24,12 @@ describe("Help Center CMS isolated fixtures", () => {
     expect(articles.length).toBe(HELP_ARTICLES.length + 1);
     expect(articles.some((a) => a.slug === "fixture-new-help")).toBe(true);
   });
+  it("empty SEO fields preserve public title and description fallbacks", () => {
+    const article = mergeHelpArticles([row({ help_metadata: { seoTitle: "", metaDescription: "" } })], [slug]).find((a) => a.slug === slug);
+    expect(article?.seoTitle).toBeUndefined();
+    expect(article?.metaDescription).toBeUndefined();
+    expect(article?.description).toBe("Fixture summary");
+  });
   it("requires an existing category", () => {
     expect(helpArticleSchema.safeParse({ slug: "fixture-help", title: "Fixture title", category: "invented", description: "", content: "", published: false }).success).toBe(false);
   });

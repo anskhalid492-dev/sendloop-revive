@@ -22,7 +22,9 @@ export type HelpCmsRow = {
 
 export function rowToHelpArticle(row: HelpCmsRow): HelpArticle {
   return { ...row.help_metadata, slug: row.slug, title: row.title, category: row.category,
-    description: row.summary, content: row.body, updated: row.updated_at.slice(0, 10) };
+    description: row.summary, content: row.body, updated: row.updated_at.slice(0, 10),
+    seoTitle: row.help_metadata?.seoTitle?.trim() || undefined,
+    metaDescription: row.help_metadata?.metaDescription?.trim() || undefined };
 }
 
 /** An unpublished override masks the original without exposing draft content. */
