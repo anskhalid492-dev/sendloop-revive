@@ -160,8 +160,8 @@ function scoreArticle(article: HelpArticle, terms: string[]): number {
   return score;
 }
 
-export function searchArticles(query: string, category: string): HelpArticle[] {
-  const pool = category === "all" ? HELP_ARTICLES : articlesInCategory(category);
+export function searchArticles(query: string, category: string, articles = HELP_ARTICLES): HelpArticle[] {
+  const pool = category === "all" ? articles : articles.filter((a) => a.category === category);
   const terms = tokenize(query);
   if (terms.length === 0) return pool;
 
@@ -172,12 +172,12 @@ export function searchArticles(query: string, category: string): HelpArticle[] {
     .map((entry) => entry.article);
 }
 
-export function relatedArticles(article: HelpArticle, limit = 4): HelpArticle[] {
+export function relatedArticles(article: HelpArticle, limit = 4, articles = HELP_ARTICLES): HelpArticle[] {
   const picked: HelpArticle[] = [];
   const seen = new Set([article.slug]);
 
   for (const slug of article.related ?? []) {
-    const match = BY_SLUG.get(slug);
+    const match = articles.find((a) => a.slug === slug);
     if (match && !seen.has(match.slug)) {
       picked.push(match);
       seen.add(match.slug);
@@ -185,7 +185,7 @@ export function relatedArticles(article: HelpArticle, limit = 4): HelpArticle[] 
     if (picked.length >= limit) return picked;
   }
 
-  for (const candidate of articlesInCategory(article.category)) {
+  for (const candidate of articles.filter((a) => a.category === article.category)) {
     if (seen.has(candidate.slug)) continue;
     picked.push(candidate);
     seen.add(candidate.slug);
@@ -195,8 +195,8 @@ export function relatedArticles(article: HelpArticle, limit = 4): HelpArticle[] 
   return picked;
 }
 
-export function articleNeighbours(slug: string) {
-  const ordered = HELP_CATEGORIES.flatMap((category) => articlesInCategory(category.slug));
+export function articleNeighbours(slug: string, articles = HELP_ARTICLES) {
+  const ordered = HELP_CATEGORIES.flatMap((category) => articles.filter((a) => a.category === category.slug));
   const index = ordered.findIndex((a) => a.slug === slug);
   return {
     previous: index > 0 ? ordered[index - 1] : undefined,

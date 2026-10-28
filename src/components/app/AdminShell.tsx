@@ -137,6 +137,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
       { to: "/mranuskhalid/seo", label: "SEO Manager", icon: FileSearch },
       { to: "/mranuskhalid/pages", label: "Pages", icon: FileSearch },
       { to: "/mranuskhalid/blog", label: "Blog", icon: Newspaper },
+      { to: "/mranuskhalid/help-center", label: "Help Center", icon: LifeBuoy },
       { to: "/mranuskhalid/navigation", label: "Navigation & Footer", icon: PanelsTopLeft },
       { to: "/mranuskhalid/redirects", label: "Redirects", icon: RouteIcon },
       { to: "/mranuskhalid/seo-files", label: "Robots & Sitemap", icon: FileCode },
