@@ -1,3 +1,4 @@
+import { MUNCHMATE_PUBLIC_PAGES } from "@/lib/munchmate/public-pages";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -169,8 +170,11 @@ function AiSupportSettings() {
           <Input id="mm-fallback" value={cfg.fallbackMessage} onChange={(e) => set("fallbackMessage", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="mm-pages">Approved public pages to index (one path per line)</Label>
-          <Textarea id="mm-pages" rows={4} value={cfg.pages.join("\n")} onChange={(e) => set("pages", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))} />
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor="mm-pages">Approved public pages to index (one path per line)</Label>
+            <Button type="button" variant="outline" size="sm" onClick={() => set("pages", Array.from(new Set([...cfg.pages, ...MUNCHMATE_PUBLIC_PAGES])))}>Add all public pages</Button>
+          </div>
+          <Textarea id="mm-pages" rows={8} value={cfg.pages.join("\n")} onChange={(e) => set("pages", e.target.value.split("\n").map((s) => s.trim()).filter(Boolean))} />
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => saveM.mutate()} disabled={saveM.isPending}>Save settings</Button>
