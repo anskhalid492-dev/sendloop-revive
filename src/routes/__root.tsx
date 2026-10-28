@@ -57,10 +57,12 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   useEffect(() => {
     if (recoverFromStaleChunk(error)) return;
     reportLovableError(error, { boundary: "tanstack_root_error_component" });
-    void import("@/instrument-browser").then(({ initBrowserSentry, captureBrowserError }) => {
-      initBrowserSentry();
-      captureBrowserError(error, { boundary: "tanstack_root_error_component" });
-    });
+    void import("@/instrument-browser")
+      .then((mod) => {
+        mod?.initBrowserSentry?.();
+        mod?.captureBrowserError?.(error, { boundary: "tanstack_root_error_component" });
+      })
+      .catch(() => {});
   }, [error]);
 
   if (staleChunk) {
@@ -355,7 +357,9 @@ function RootComponent() {
   useEffect(() => {
     // Browser error monitoring. Loaded after hydration so the SDK never runs
     // during SSR and never blocks the first paint.
-    void import("@/instrument-browser").then(({ initBrowserSentry }) => initBrowserSentry());
+    void import("@/instrument-browser")
+      .then((mod) => mod?.initBrowserSentry?.())
+      .catch(() => {});
   }, []);
 
   useEffect(() => {

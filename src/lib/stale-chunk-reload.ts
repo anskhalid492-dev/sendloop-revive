@@ -40,8 +40,13 @@ export function isStaleChunkError(error: unknown): boolean {
     // A lazy route chunk from a different deploy resolves without the
     // expected export, so TanStack's lazyRouteComponent reads `.component`
     // of undefined. Same root cause: old page open against a new build.
-    (lower.includes("cannot read properties of undefined") && lower.includes("'component'")) ||
-    lower.includes("undefined is not an object (evaluating") && lower.includes("component")
+    (lower.includes("cannot read properties of undefined") &&
+      (lower.includes("'component'") || lower.includes("'default'"))) ||
+    // Safari: lazyRouteComponent reads `mod[exportName ?? "default"]` of undefined.
+    (lower.includes("undefined is not an object (evaluating") &&
+      (lower.includes("component") || lower.includes("default"))) ||
+    // A dynamic import resolved to nothing (e.g. destructuring its exports).
+    (lower.includes("cannot destructure property") && lower.includes("null or undefined"))
   );
 }
 
