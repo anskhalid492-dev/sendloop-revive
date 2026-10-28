@@ -1,9 +1,10 @@
 # Roadmap
 
 ## Help Center article management
-- [ ] Reuse guide article storage for Admin create/edit/draft/publish/preview and reversible deletion.
-- [ ] Connect the existing public Help Center and MunchMate indexing to the same published catalogue.
-- [ ] Add isolated regressions and verify preview; prepare owner-applied SQL without deploying.
+- [x] Reuse guide article storage for Admin create/edit/draft/publish/preview and reversible deletion.
+- [x] Connect the existing public Help Center and MunchMate indexing to the same published catalogue.
+- [x] Add isolated regressions and verify public preview; prepare owner-applied SQL without deploying.
+- [ ] Apply owner-reviewed help-center-cms.sql and verify Admin save/publish/image/index refresh — blocked: production SQL is manual and no named throwaway test-account session is available.
 
 ## Compact warmup dashboard
 - [x] Remove summaries and extra columns; place four time filters above the mailbox table.
