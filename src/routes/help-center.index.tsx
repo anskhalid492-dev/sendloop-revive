@@ -17,9 +17,9 @@ import {
 
 import { MarketingLayout, Section, metaFor } from "@/components/site/MarketingPage";
 import { Button } from "@/components/ui/button";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { listPublicHelpArticles } from "@/lib/help-center-cms.functions";
 import {
-  ARTICLES_BY_UPDATED,
-  HELP_ARTICLES,
   HELP_CATEGORIES,
   categoryName,
   formatUpdated,
@@ -28,7 +28,10 @@ import {
   type HelpArticle,
 } from "@/lib/help-center-content";
 
+const articlesQuery = queryOptions({ queryKey: ["public-help-articles"], queryFn: () => listPublicHelpArticles(), staleTime: 0 });
+
 export const Route = createFileRoute("/help-center/")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(articlesQuery),
   head: () =>
     metaFor(
       "MunchReach Help Center — Guides & Answers",
@@ -76,15 +79,16 @@ const relatedResources = [
 ];
 
 function HelpCenter() {
+  const { data: HELP_ARTICLES } = useSuspenseQuery(articlesQuery);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
 
   const searching = query.trim().length > 0 || category !== "all";
-  const results = useMemo(() => searchArticles(query, category), [query, category]);
+  const results = useMemo(() => searchArticles(query, category, HELP_ARTICLES), [query, category, HELP_ARTICLES]);
 
   const popular = HELP_ARTICLES.filter((a) => a.popular);
   const gettingStarted = HELP_ARTICLES.filter((a) => a.gettingStarted);
-  const recent = ARTICLES_BY_UPDATED.slice(0, 6);
+  const recent = [...HELP_ARTICLES].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, 6);
 
   function clearSearch() {
     setQuery("");

@@ -64,7 +64,9 @@ export const listPublicGuide = createServerFn({ method: "GET" }).handler(
     const alerts = ((alertsRes.data ?? []) as unknown as ServiceAlert[]).filter(
       (a) => !a.ends_at || a.ends_at > nowIso,
     );
-    return { articles: (articlesRes.data ?? []) as unknown as GuideArticle[], alerts };
+    const { data: helpRows } = await (client as any).from("guide_articles").select("id").eq("help_center", true);
+    const helpIds = new Set((helpRows ?? []).map((r: { id: string }) => r.id));
+    return { articles: ((articlesRes.data ?? []) as unknown as GuideArticle[]).filter((a) => !helpIds.has(a.id)), alerts };
   },
 );
 
@@ -244,8 +246,10 @@ export const adminListGuide = createServerFn({ method: "GET" })
     ]);
     if (articles.error) throw new Error(articles.error.message);
     if (alerts.error) throw new Error(alerts.error.message);
+    const { data: helpRows } = await (context.supabase as any).from("guide_articles").select("id").eq("help_center", true);
+    const helpIds = new Set((helpRows ?? []).map((r: { id: string }) => r.id));
     return {
-      articles: (articles.data ?? []) as unknown as GuideArticle[],
+      articles: ((articles.data ?? []) as unknown as GuideArticle[]).filter((a) => !helpIds.has(a.id)),
       alerts: (alerts.data ?? []) as unknown as ServiceAlert[],
     };
   });
@@ -273,6 +277,10 @@ export const adminSaveGuideArticle = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    if (data.id) {
+      const { data: help } = await (context.supabase as any).from("guide_articles").select("id").eq("id", data.id).eq("help_center", true).maybeSingle();
+      if (help) throw new Error("Manage this article in Help Center");
+    }
     const row = {
       category: data.category,
       slug: data.slug,
@@ -295,6 +303,8 @@ export const adminDeleteGuideArticle = createServerFn({ method: "POST" })
   .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
+    const { data: help } = await (context.supabase as any).from("guide_articles").select("id").eq("id", data.id).eq("help_center", true).maybeSingle();
+    if (help) throw new Error("Manage this article in Help Center");
     const { error } = await context.supabase.from("guide_articles").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true as const };

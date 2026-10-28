@@ -15,16 +15,17 @@ import {
   articleNeighbours,
   categoryName,
   formatUpdated,
-  getArticle,
   readingMinutes,
   relatedArticles,
 } from "@/lib/help-center-content";
+import { listPublicHelpArticles } from "@/lib/help-center-cms.functions";
 
 export const Route = createFileRoute("/help-center/$slug")({
-  loader: ({ params }) => {
-    const article = getArticle(params.slug);
+  loader: async ({ params }) => {
+    const articles = await listPublicHelpArticles();
+    const article = articles.find((a) => a.slug === params.slug);
     if (!article) throw notFound();
-    return { article };
+    return { article, articles };
   },
   head: ({ params, loaderData }) => {
     if (!loaderData) {
@@ -98,10 +99,10 @@ function Helpful({ slug }: { slug: string }) {
 }
 
 function ArticlePage() {
-  const { article } = Route.useLoaderData();
+  const { article, articles } = Route.useLoaderData();
   const sections = parseHelpArticle(article.content);
-  const { previous, next } = articleNeighbours(article.slug);
-  const related = relatedArticles(article);
+  const { previous, next } = articleNeighbours(article.slug, articles);
+  const related = relatedArticles(article, 4, articles);
   const faqs = article.faqs ?? [];
 
   const jsonLd: Record<string, unknown>[] = [
@@ -142,7 +143,7 @@ function ArticlePage() {
       <script
         type="application/ld+json"
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <div className="border-b border-border/60 bg-secondary/30">
         <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">

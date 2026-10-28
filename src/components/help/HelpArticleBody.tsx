@@ -12,6 +12,7 @@
 import { Link } from "@tanstack/react-router";
 import { Camera } from "lucide-react";
 import type { ReactNode } from "react";
+import { safeHelpUrl } from "@/lib/help-center-cms";
 
 export type HelpBlock =
   | { kind: "h3"; id: string; text: string }
@@ -143,6 +144,11 @@ export function inline(text: string, keyPrefix = ""): ReactNode[] {
       );
     } else if (match[3] && match[4]) {
       const href = match[4];
+      if (!safeHelpUrl(href)) {
+        nodes.push(match[3]);
+        cursor = match.index + match[0].length;
+        continue;
+      }
       nodes.push(
         href.startsWith("/") ? (
           <Link key={key} to={href} className="text-primary underline-offset-4 hover:underline">
@@ -181,6 +187,7 @@ function Figure({ block }: { block: Extract<HelpBlock, { kind: "image" }> }) {
       </figure>
     );
   }
+  if (!safeHelpUrl(block.src)) return null;
   return (
     <figure className="my-6">
       <img
