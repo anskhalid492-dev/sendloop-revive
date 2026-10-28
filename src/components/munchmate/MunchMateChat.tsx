@@ -1,12 +1,15 @@
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ExternalLink, LifeBuoy, List, Minus, Plus, Send, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  ArrowLeft, ArrowUp, ExternalLink, Flame, Inbox, LayoutList, LifeBuoy, List, Mail, Minus, Plus, Rocket, ShieldCheck, ThumbsDown, ThumbsUp, Upload, X,
+  type LucideIcon,
+} from "lucide-react";
 import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { createMunchmateGuestTicket, createMunchmateTicket, munchmateChat } from "@/lib/munchmate.functions";
 import { isAllowedLink } from "@/lib/munchmate/retrieval";
 import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_LABEL, SUPPORT_PRIORITIES, SUPPORT_PRIORITY_LABEL } from "@/lib/support-model";
-import { MunchMateMascot } from "./MunchMateMascot";
+import { MunchMateMascot, type MascotMood } from "./MunchMateMascot";
 
 type Msg = {
   id: string;
@@ -20,16 +23,19 @@ type Msg = {
 type Thread = { id: string; title: string; updatedAt: string; messages: Msg[]; ticketRef?: string };
 
 const STORE = "munchmate.threads.v1";
-const GREETING = "Hey! I'm MunchMate 👋\nYour MunchReach assistant. How can I help you today?";
-const SUGGESTIONS = [
-  "How do I create my first campaign?",
-  "How does email warmup work?",
-  "How do I connect my mailbox?",
-  "How can I improve email deliverability?",
-  "How do I import leads?",
-  "How does Unibox work?",
-  "How do I manage my campaigns?",
+/** Label shown on the card → question actually sent (unchanged prompts for retrieval). */
+const SUGGESTIONS: Array<{ label: string; q: string; icon: LucideIcon }> = [
+  { label: "Create my first campaign", q: "How do I create my first campaign?", icon: Rocket },
+  { label: "Set up email warmup", q: "How does email warmup work?", icon: Flame },
+  { label: "Connect my mailbox", q: "How do I connect my mailbox?", icon: Mail },
+  { label: "Improve deliverability", q: "How can I improve email deliverability?", icon: ShieldCheck },
+  { label: "Import leads", q: "How do I import leads?", icon: Upload },
+  { label: "Explore Unibox", q: "How does Unibox work?", icon: Inbox },
+  { label: "Manage campaigns", q: "How do I manage my campaigns?", icon: LayoutList },
 ];
+/** Occasional, light personality while waiting — never added to answers. */
+const THINKING_LINES = ["Let's figure this out!", "Aha, I know where to look.", "One second, let me check the help docs.", "No worries, we've got this."];
+const timeLabel = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const uid = () => crypto.randomUUID();
 const newThread = (): Thread => ({ id: uid(), title: "New conversation", updatedAt: new Date().toISOString(), messages: [] });
