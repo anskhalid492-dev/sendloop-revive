@@ -73,19 +73,32 @@ function inline(text: string): ReactNode[] {
 }
 
 function RichText({ text }: { text: string }) {
-  const blocks = text.split(/\n{2,}/);
+  // Group consecutive list lines so mixed paragraphs + steps render cleanly.
+  const LIST = /^\s*([-*•]|\d+[.)])\s+/;
+  const groups: Array<{ kind: "p" | "ol" | "ul"; lines: string[] }> = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      groups.push({ kind: "p", lines: [] });
+      continue;
+    }
+    const kind = LIST.test(line) ? (/^\s*\d/.test(line) ? "ol" : "ul") : "p";
+    const last = groups[groups.length - 1];
+    if (last && last.kind === kind && (kind !== "p" || last.lines.length)) last.lines.push(line);
+    else groups.push({ kind, lines: [line] });
+  }
   return (
     <div className="space-y-2">
-      {blocks.map((b, i) => {
-        const lines = b.split("\n");
-        if (lines.every((l) => /^\s*([-*]|\d+[.)])\s+/.test(l))) {
-          const ordered = /^\s*\d/.test(lines[0] ?? "");
-          const items = lines.map((l, j) => <li key={j}>{inline(l.replace(/^\s*([-*]|\d+[.)])\s+/, ""))}</li>);
-          return ordered ? <ol key={i} className="list-decimal space-y-1 pl-5">{items}</ol> : <ul key={i} className="list-disc space-y-1 pl-5">{items}</ul>;
+      {groups.filter((g) => g.lines.length).map((g, i) => {
+        if (g.kind !== "p") {
+          const items = g.lines.map((l, j) => <li key={j} className="pl-0.5">{inline(l.replace(LIST, ""))}</li>);
+          return g.kind === "ol"
+            ? <ol key={i} className="list-decimal space-y-1 pl-5 marker:font-semibold marker:text-primary">{items}</ol>
+            : <ul key={i} className="list-disc space-y-1 pl-5 marker:text-primary">{items}</ul>;
         }
         return (
           <p key={i}>
-            {lines.map((l, j) => (
+            {g.lines.map((l, j) => (
               <Fragment key={j}>{j > 0 ? <br /> : null}{inline(l.replace(/^#+\s*/, ""))}</Fragment>
             ))}
           </p>
