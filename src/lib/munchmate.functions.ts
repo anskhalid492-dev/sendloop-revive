@@ -19,7 +19,7 @@ import {
   identityAnswer,
   sourceLinks,
 } from "@/lib/munchmate/retrieval";
-import { buildKnowledgePrompt } from "@/lib/munchmate/grounding";
+import { buildKnowledgePrompt, verifiedPricingAnswer } from "@/lib/munchmate/grounding";
 
 export type MunchmateConfig = {
   enabled: boolean;
@@ -137,6 +137,8 @@ export const munchmateChat = createServerFn({ method: "POST" })
       hits.push(...retrieve(recentUser, docs, 10));
     }
     const sources = sourceLinks(hits);
+    const pricingAnswer = verifiedPricingAnswer(lastUser, docs);
+    if (pricingAnswer) return { reply: pricingAnswer, sources: sourceLinks(docs.filter((d) => d.key.startsWith("pricing:"))), offerTicket: false };
 
     if (hits.length === 0) return { reply: fallback, sources: [], offerTicket: true };
 

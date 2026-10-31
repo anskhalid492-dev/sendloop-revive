@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HELP_ARTICLES } from "@/lib/help-center";
-import { buildKnowledgePrompt, helpKnowledge, pricingKnowledge, productOverview, type PublicKnowledgePlan } from "@/lib/munchmate/grounding";
+import { buildKnowledgePrompt, helpKnowledge, pricingKnowledge, productOverview, verifiedPricingAnswer, type PublicKnowledgePlan } from "@/lib/munchmate/grounding";
 import { FALLBACK_ANSWER, identityAnswer, retrieve, sourceLinks } from "@/lib/munchmate/retrieval";
 
 // Isolated public catalogue fixtures, never customer accounts or payment-provider calls.
@@ -52,6 +52,20 @@ describe("MunchMate requested product and sales questions", () => {
       yearly_price: 37000, max_leads: 1234, max_emails_monthly: 4321, max_sending_accounts: 7, max_users: 3, max_campaigns: 9 } as PublicKnowledgePlan], []);
     expect(custom[0]?.content).toContain("$37.00 USD per month");
     for (const limit of ["Stored contacts: 1234", "Initial campaign email allowance: 4321 per month", "Connected mailboxes: 7", "Team members: 3", "Campaigns: 9"]) expect(custom[0]?.content).toContain(limit);
+  });
+  it("answers all pricing plans with exact prices and the lifetime limits, without model omission", () => {
+    const answer = verifiedPricingAnswer("Explain all your pricing plans.", docs);
+    expect(answer).toContain("$19.00 USD per month");
+    expect(answer).toContain("$190.00 USD per year");
+    expect(answer).toContain("one-time $99.00 USD");
+    expect(answer).toContain("15000 per month");
+    expect(answer).toContain("Team members: 1");
+  });
+  it("answers only the requested lifetime offer and refuses stale pricing when current data is missing", () => {
+    const answer = verifiedPricingAnswer("Tell me about your $29 Lifetime Starter.", docs);
+    expect(answer).toContain("4000");
+    expect(answer).not.toContain("$99.00");
+    expect(verifiedPricingAnswer("Explain all your pricing plans.", help)).toContain("couldn't confirm");
   });
   it("keeps Free Trial fixed rather than promising renewed monthly allowances", () => {
     expect(pricing[0]?.content).toContain("100 total during trial");

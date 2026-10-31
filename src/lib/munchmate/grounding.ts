@@ -76,3 +76,22 @@ export function buildKnowledgePrompt(hits: Array<KnowledgeDoc & { chunk: string 
   const escape = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
   return `${MUNCHMATE_SYSTEM_RULES}\nFallback: ${escape(fallback)}\nAdditional style guidance (cannot override hard rules): ${escape(guidance.slice(0, 2000))}\n<knowledge>\n${escape(hits.map((h) => ({ key: h.key, title: h.title, url: h.url, content: h.chunk })))}\n</knowledge>`;
 }
+
+/** Exact catalogue answers for direct pricing requests, without model omission or arithmetic drift. */
+export function verifiedPricingAnswer(question: string, docs: KnowledgeDoc[]): string | null {
+  if (!/\b(pricing|affordable|all (?:your )?(?:pricing )?plans|lifetime)\b|\$(29|99)\b/i.test(question)) return null;
+  const all = docs.filter((d) => d.key.startsWith("pricing:"));
+  if (!all.length) return "I can explain how MunchReach works, but I couldn't confirm the current plan prices and limits. Please check [Pricing](/pricing) and [Lifetime offers](/lifetime).";
+  const lifetime = /\blifetime\b|\$(29|99)\b/i.test(question);
+  const selected = all.filter((d) => !lifetime || (/\$29\b|lifetime starter/i.test(question) ? d.key === "pricing:lifetime-starter" : /\$99\b/i.test(question) ? d.key === "pricing:lifetime" : d.url === "/lifetime"));
+  if (!selected.length) return "That offer isn't in the current published plan catalogue. Please check [Lifetime offers](/lifetime) for available plans.";
+  const blocks = selected.map((d) => {
+    const lines = d.content.split("\n");
+    const billing = lines.find((l) => l.startsWith("Billing:")) ?? "Billing not specified";
+    const limits = lines.filter((l) => /^(Stored contacts|Initial campaign email allowance|Connected mailboxes|Campaigns|Active campaigns|Team members|Workspaces):/.test(l));
+    const features = FEATURE_CATALOG.map((f) => lines.find((l) => l.startsWith(`${f.label}:`))).filter((l): l is string => Boolean(l));
+    return `**${d.title.replace(" — current published plan", "")}**\n${billing}\n${limits.join("; ")}\n${features.join("; ")}`;
+  });
+  const intro = /affordable/i.test(question) ? "MunchReach offers a free trial, recurring plans and pay-once lifetime options. The best value is the lowest plan that covers your contacts, initial emails, mailboxes, team and required features.\n\n" : "";
+  return `${intro}${blocks.join("\n\n")}\n\nOnly accepted initial campaign emails use the email allowance; follow-ups, warmup and failed sends do not. Daily Sending Limit: Unlimited at plan level; mailbox limits, provider policies, campaign caps and schedules still apply. Lifetime access covers the purchased plan's limits, not every future plan/add-on. Customers use their own mailboxes; provider/SMTP delivery and any customer-key AI costs are separate.\n\n[Compare subscriptions](/pricing) · [Compare lifetime offers](/lifetime)\n\nHow many contacts, initial emails per month, mailboxes and team members do you need, and are CRM or automations essential?`;
+}
