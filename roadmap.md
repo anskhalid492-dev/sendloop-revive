@@ -1,5 +1,10 @@
 # Roadmap
 
+## MunchMate product and pricing knowledge
+- [ ] Improve broad and multi-topic retrieval and always merge current published Help content.
+- [ ] Add structured current public plan knowledge and grounded product/sales instructions without changing chat or support.
+- [ ] Test the ten requested questions with isolated fixtures and verify preview without publishing.
+
 ## Help Center article management
 - [x] Reuse guide article storage for Admin create/edit/draft/publish/preview and reversible deletion.
 - [x] Connect the existing public Help Center and MunchMate indexing to the same published catalogue.
