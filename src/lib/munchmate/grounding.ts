@@ -35,7 +35,7 @@ export function pricingKnowledge(plans: PublicKnowledgePlan[], features: PublicK
       ...FEATURE_CATALOG.map((f) => {
         const saved = features.find((row) => row.plan_id === p.id && row.feature_key === f.key);
         const included = f.column ? p[f.column] : saved?.included ?? f.fallback;
-        return `${f.label}: ${included === true ? "Included" : included === false ? "Not included" : "Not specified"}${saved?.value ? ` (${saved.value})` : ""}`;
+        return `Feature — ${f.label}: ${included === true ? "Included" : included === false ? "Not included" : "Not specified"}${saved?.value ? ` (${saved.value})` : ""}`;
       }),
       ...features.filter((row) => row.plan_id === p.id && !row.feature_key).map((row) => `${row.name}: ${row.included ? "Included" : "Not included"}${row.value ? ` (${row.value})` : ""}`),
       "Customers supply their own email accounts. Their email provider or SMTP server performs delivery. AI provider charges on customer-connected keys are separate; no inbox-placement guarantee.",
@@ -89,7 +89,7 @@ export function verifiedPricingAnswer(question: string, docs: KnowledgeDoc[]): s
     const lines = d.content.split("\n");
     const billing = lines.find((l) => l.startsWith("Billing:")) ?? "Billing not specified";
     const limits = lines.filter((l) => /^(Stored contacts|Initial campaign email allowance|Connected mailboxes|Campaigns|Active campaigns|Team members|Workspaces):/.test(l));
-    const features = FEATURE_CATALOG.map((f) => lines.find((l) => l.startsWith(`${f.label}:`))).filter((l): l is string => Boolean(l));
+    const features = FEATURE_CATALOG.map((f) => lines.find((l) => l.startsWith(`Feature — ${f.label}:`))?.replace("Feature — ", "")).filter((l): l is string => Boolean(l));
     return `**${d.title.replace(" — current published plan", "")}**\n${billing}\n${limits.join("; ")}\n${features.join("; ")}`;
   });
   const intro = /affordable/i.test(question) ? "MunchReach offers a free trial, recurring plans and pay-once lifetime options. The best value is the lowest plan that covers your contacts, initial emails, mailboxes, team and required features.\n\n" : "";

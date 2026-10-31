@@ -67,6 +67,13 @@ describe("MunchMate requested product and sales questions", () => {
     expect(answer).not.toContain("$99.00");
     expect(verifiedPricingAnswer("Explain all your pricing plans.", help)).toContain("couldn't confirm");
   });
+  it("never confuses unlimited automation capacity with automation feature access", () => {
+    const restricted = pricingKnowledge([{ ...plans[4], max_automations: null } as PublicKnowledgePlan], []);
+    const answer = verifiedPricingAnswer("Tell me about your $29 Lifetime Starter.", restricted);
+    expect(answer).toContain("Automations: Not included");
+    expect(answer).not.toContain("Automations: Unlimited");
+    expect(answer).not.toContain("Campaigns: Included; Campaigns: Included");
+  });
   it("keeps Free Trial fixed rather than promising renewed monthly allowances", () => {
     expect(pricing[0]?.content).toContain("100 total during trial");
     expect(pricing[0]?.content).not.toContain("100 per month");

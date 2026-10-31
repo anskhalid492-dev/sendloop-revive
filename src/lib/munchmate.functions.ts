@@ -138,7 +138,7 @@ export const munchmateChat = createServerFn({ method: "POST" })
     }
     const sources = sourceLinks(hits);
     const pricingAnswer = verifiedPricingAnswer(lastUser, docs);
-    if (pricingAnswer) return { reply: pricingAnswer, sources: sourceLinks(docs.filter((d) => d.key.startsWith("pricing:"))), offerTicket: false };
+    if (pricingAnswer) return { reply: pricingAnswer, sources: sourceLinks([...hits.filter((d) => d.key.startsWith("pricing:")), ...docs.filter((d) => d.key.startsWith("pricing:"))]), offerTicket: false };
 
     if (hits.length === 0) return { reply: fallback, sources: [], offerTicket: true };
 
