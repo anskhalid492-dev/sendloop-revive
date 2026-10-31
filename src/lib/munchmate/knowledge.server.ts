@@ -6,6 +6,7 @@
 import { readHelpCatalogue } from "@/lib/help-center-cms.server";
 import { publicContentClient } from "@/lib/trust-center.server";
 import { isAllowedLink, type KnowledgeDoc } from "@/lib/munchmate/retrieval";
+import { helpKnowledge, pricingKnowledge, productOverview, PRICING_COLUMNS, type PublicKnowledgePlan, type PublicKnowledgeFeature } from "./grounding";
 
 type Row = { source: string; source_key: string; title: string; url: string | null; content: string };
 
@@ -28,24 +29,28 @@ async function admin() {
   return supabaseAdmin as any;
 }
 
+export async function loadPublicPricingKnowledge(): Promise<KnowledgeDoc[]> {
+  const db = await publicContentClient();
+  const [plans, features] = await Promise.all([
+    db.from("plans").select(PRICING_COLUMNS).order("sort_order"),
+    db.from("plan_features").select("plan_id,name,included,value,feature_key").order("sort_order"),
+  ]);
+  if (plans.error || features.error) throw new Error("Current public pricing could not be confirmed");
+  return pricingKnowledge((plans.data ?? []) as unknown as PublicKnowledgePlan[], (features.data ?? []) as PublicKnowledgeFeature[]);
+}
+
 async function collectSources(pages: string[]): Promise<Row[]> {
   const db = await admin();
   const helpArticles = await readHelpCatalogue(await publicContentClient());
-  const rows: Row[] = helpArticles.map((a) => ({
-    source: "help",
-    source_key: `help:${a.slug}`,
-    title: a.title,
-    url: `/help-center/${a.slug}`,
-    content: [a.quickAnswer, ...(a.tldr ?? []), a.content, ...(a.faqs ?? []).map((f) => `${f.q} ${f.a}`)]
-      .filter(Boolean)
-      .join("\n\n"),
-  }));
+  const help = helpKnowledge(helpArticles);
+  const rows: Row[] = [...help, ...productOverview(help)].map((d) => ({ source: "help", source_key: d.key, title: d.title, url: d.url, content: d.content }));
 
-  const [blog, faqs, plans] = await Promise.all([
+  const [blog, faqs, pricing] = await Promise.all([
     db.from("blog_posts").select("slug, title, excerpt, content").eq("status", "published").limit(500),
     db.from("site_faqs").select("id, page_slug, question, answer").eq("published", true).limit(1000),
-    db.from("plans").select("*").order("sort_order", { ascending: true }),
+    loadPublicPricingKnowledge(),
   ]);
+  if (blog.error || faqs.error) throw new Error("Public knowledge could not be refreshed; the existing index is preserved");
   for (const p of (blog.data ?? []) as Array<{ slug: string; title: string; excerpt: string; content: string }>) {
     rows.push({
       source: "blog",
@@ -64,24 +69,7 @@ async function collectSources(pages: string[]): Promise<Row[]> {
       content: `${f.question}\n${f.answer}`,
     });
   }
-  const publicPlans = ((plans.data ?? []) as Array<Record<string, unknown>>).filter(
-    (p) => p["is_public"] !== false && p["is_active"] !== false && p["archived"] !== true,
-  );
-  if (publicPlans.length) {
-    const lines = publicPlans.map((p) => {
-      const pick = (k: string) => (p[k] === undefined || p[k] === null ? null : `${k.replace(/_/g, " ")}: ${String(p[k])}`);
-      return [p["name"], ...["description", "price_monthly", "price_yearly", "price_lifetime", "monthly_price", "yearly_price", "contacts_limit", "monthly_email_limit", "max_mailboxes"].map(pick)]
-        .filter(Boolean)
-        .join("; ");
-    });
-    rows.push({
-      source: "pricing",
-      source_key: "pricing:plans",
-      title: "MunchReach pricing and plans",
-      url: "/pricing",
-      content: `Current public plans (see /pricing for the latest):\n${lines.join("\n")}`,
-    });
-  }
+  rows.push(...pricing.map((d) => ({ source: "pricing", source_key: d.key, title: d.title, url: d.url, content: d.content })));
 
   // Fetch in small batches so a long page list stays quick and light.
   const list = pages.filter(isAllowedLink).slice(0, 100);
@@ -127,26 +115,22 @@ export async function refreshKnowledgeIndex(pages: string[]): Promise<{ indexed:
   return { indexed: rows.length, removed: stale.length };
 }
 
-/** Enabled knowledge, falling back to built-in help articles if the index is empty. */
+/** Fresh published Help/pricing always augment the index, even when it is nonempty. */
 export async function loadKnowledge(): Promise<KnowledgeDoc[]> {
   const db = await admin();
   const helpArticles = await readHelpCatalogue(await publicContentClient());
-  const publicHelpSlugs = new Set(helpArticles.map((a) => `help:${a.slug}`));
+  const help = helpKnowledge(helpArticles);
+  const pricing = await loadPublicPricingKnowledge().catch(() => []);
   const { data } = await db
     .from("munchmate_knowledge")
     .select("source_key, title, url, content")
     .eq("enabled", true)
     .limit(3000);
   const docs = ((data ?? []) as Array<{ source_key: string; title: string; url: string | null; content: string }>).filter(
-    (r) => !r.source_key.startsWith("help:") || publicHelpSlugs.has(r.source_key),
+    // Never use stale indexed Help overrides or stale indexed pricing as current facts.
+    (r) => !r.source_key.startsWith("help:") && !r.source_key.startsWith("pricing:") && r.source_key !== "product:overview",
   ).map(
     (r) => ({ key: r.source_key, title: r.title, url: r.url, content: r.content }),
   );
-  if (docs.length) return docs;
-  return helpArticles.map((a) => ({
-    key: `help:${a.slug}`,
-    title: a.title,
-    url: `/help-center/${a.slug}`,
-    content: `${a.quickAnswer ?? ""}\n${a.content}`,
-  }));
+  return [...productOverview(help), ...pricing, ...help, ...docs];
 }

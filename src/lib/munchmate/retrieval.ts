@@ -1,6 +1,6 @@
 /**
  * MunchMate retrieval (pure, client-safe). Keyword scoring over approved
- * public knowledge chunks — no customer data ever reaches this module.
+ * public knowledge chunks with topic expansion — no customer data ever reaches this module.
  */
 export type KnowledgeDoc = {
   key: string;
@@ -12,7 +12,7 @@ export type KnowledgeDoc = {
 export type ScoredChunk = KnowledgeDoc & { score: number; chunk: string };
 
 const STOP = new Set(
-  "a an the and or of to in on for with by is are was be do does how i my me we you your it this that can what why when where which from at as so if not no yes our get use using".split(
+    "a an the and or of to in on for with by is are was be do does how i my me we you your it this that can what why when where which from at as so if not no yes our get use using munchreach munchmate tell give everything detailed about".split(
     " ",
   ),
 );
@@ -39,13 +39,36 @@ export function chunkText(text: string, size = 900): string[] {
   return out;
 }
 
-/** Top-k chunks. Title matches weigh 3x; returns only chunks with a real match. */
-export function retrieve(query: string, docs: KnowledgeDoc[], k = 5, minScore = 1.5): ScoredChunk[] {
-  const q = Array.from(new Set(tokenize(query)));
+export function knowledgeIntent(query: string) {
+  return {
+    overview: /\b(what is munchreach|overview|everything about munchreach|features|how (does )?munchreach (work|help)|cold (email|outreach))\b/i.test(query),
+    pricing: /\b(pric(?:e|es|ing)|plans?|affordable|cost|budget|starter|growth|scale|lifetime|free trial|subscription)\b|\$(29|99)\b/i.test(query),
+    lifetime: /\blifetime\b|\$(29|99)\b/i.test(query),
+  };
+}
+
+const TOPICS = [
+  ["affordable cost budget pricing price plan subscription lifetime deal", "pricing plan billing"],
+  ["warmup reputation deliverability spam inbox placement", "warmup deliverability"],
+  ["unibox inbox replies conversations", "inbox reply"],
+  ["mailbox mailboxes account smtp imap gmail outlook", "mailbox account"],
+  ["campaign sequence automation outreach followup follow-ups", "campaign sequence automation"],
+  ["leads contacts csv import verification verify", "lead import verification"],
+  ["integration integrations api webhook", "integration api webhook"],
+] as const;
+
+/** Topic-aware lexical retrieval. Brand mentions alone never qualify an unrelated question. */
+export function retrieve(query: string, docs: KnowledgeDoc[], k = 8, minScore = 1): ScoredChunk[] {
+  const intent = knowledgeIntent(query);
+  const original = tokenize(query);
+  const expanded = TOPICS.filter(([words]) => tokenize(words).some((t) => original.includes(t)))
+    .flatMap(([, words]) => tokenize(words));
+  const q = Array.from(new Set([...original, ...expanded]));
+  if (intent.overview) q.push("overview", "feature", "campaign", "mailbox", "warmup", "lead", "inbox", "api");
   if (q.length === 0) return [];
   const df = new Map<string, number>();
   const prepared = docs.flatMap((d) =>
-    chunkText(d.content).map((chunk) => {
+    chunkText(d.content, d.key.startsWith("pricing:") || d.key === "product:overview" ? 14000 : 1200).map((chunk) => {
       const toks = new Set(tokenize(`${d.title} ${chunk}`));
       for (const t of q) if (toks.has(t)) df.set(t, (df.get(t) ?? 0) + 1);
       return { d, chunk, toks, titleToks: new Set(tokenize(d.title)) };
@@ -54,7 +77,9 @@ export function retrieve(query: string, docs: KnowledgeDoc[], k = 5, minScore = 
   const n = Math.max(prepared.length, 1);
   const scored: ScoredChunk[] = [];
   for (const p of prepared) {
-    let score = 0;
+    const authoritative = (intent.pricing && p.d.key.startsWith("pricing:")) || (intent.overview && p.d.key === "product:overview");
+    let score = authoritative ? 20 : 0;
+    if (intent.lifetime && p.d.url === "/lifetime" && p.d.key.startsWith("pricing:")) score += 10;
     for (const t of q) {
       if (!p.toks.has(t)) continue;
       const idf = Math.log(1 + n / (df.get(t) ?? 1));
@@ -65,7 +90,29 @@ export function retrieve(query: string, docs: KnowledgeDoc[], k = 5, minScore = 
   scored.sort((a, b) => b.score - a.score);
   // One chunk per doc keeps sources diverse.
   const seen = new Set<string>();
-  return scored.filter((s) => (seen.has(s.key) ? false : (seen.add(s.key), true))).slice(0, k);
+  return scored.filter((s) => {
+    const identity = s.url ?? s.key;
+    // Individual plan documents share a destination but contain different necessary limits.
+    const key = s.key.startsWith("pricing:") ? s.key : identity;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, k);
+}
+
+export function identityAnswer(query: string): string | null {
+  return /^(?:are you munchmate|who are you|what(?:'s| is) your name)[?.!\s]*$/i.test(query.trim())
+    ? "Yes! I'm MunchMate, your MunchReach sidekick. I'm here to help you explore MunchReach, understand its features and find the right plan. 😊"
+    : null;
+}
+
+export function sourceLinks(hits: KnowledgeDoc[]) {
+  const seen = new Set<string>();
+  return hits.flatMap((h) => {
+    if (!h.url || !isAllowedLink(h.url) || seen.has(h.url)) return [];
+    seen.add(h.url);
+    return [{ title: h.title, url: h.url }];
+  }).slice(0, 3);
 }
 
 export const FALLBACK_ANSWER =

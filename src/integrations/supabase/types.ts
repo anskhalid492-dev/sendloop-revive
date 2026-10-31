@@ -4344,6 +4344,9 @@ export type Database = {
           body: string
           category: string
           created_at: string
+          deleted_at: string | null
+          help_center: boolean
+          help_metadata: Json
           id: string
           published: boolean
           slug: string
@@ -4356,6 +4359,9 @@ export type Database = {
           body?: string
           category?: string
           created_at?: string
+          deleted_at?: string | null
+          help_center?: boolean
+          help_metadata?: Json
           id?: string
           published?: boolean
           slug: string
@@ -4368,6 +4374,9 @@ export type Database = {
           body?: string
           category?: string
           created_at?: string
+          deleted_at?: string | null
+          help_center?: boolean
+          help_metadata?: Json
           id?: string
           published?: boolean
           slug?: string
@@ -10976,6 +10985,12 @@ export type Database = {
           _workspace_id: string
         }
         Returns: boolean
+      }
+      help_center_override_slugs: {
+        Args: never
+        Returns: {
+          slug: string
+        }[]
       }
       invite_workspace_member: {
         Args: {
