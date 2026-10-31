@@ -25,7 +25,7 @@ export function pricingKnowledge(plans: PublicKnowledgePlan[], features: PublicK
     const lifetime = isLifetimePlan(p);
     const trial = !lifetime && Number(p.monthly_price) === 0;
     const money = (cents: number) => `$${(cents / 100).toFixed(2)} USD`;
-    const lines = [p.name, p.description, p.tagline,
+    const lines = [p.name, p["description"], p["tagline"],
       lifetime ? `Billing: one-time ${money(lifetimePriceCents(p))}; no subscription renewal. Lifetime access covers this purchased plan and its listed limits, not every future plan or add-on.`
         : trial ? "Billing: Free Trial ($0); not a purchasable paid plan. Trial allowances are fixed for the trial, not renewed monthly."
         : `Billing: recurring; ${money(p.monthly_price)} per month; ${money(p.yearly_price)} per year (annual charge, not a monthly price).`,
