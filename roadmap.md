@@ -1,5 +1,10 @@
 # Roadmap
 
+## MunchMate chat validation
+- [ ] Bound request history and knowledge excerpts without truncating the latest valid question or stored history.
+- [ ] Add one reduced-context retry and friendly errors with server-only diagnostics.
+- [ ] Verify long/consecutive chats and both providers using isolated fixtures; do not publish.
+
 ## MunchMate product and pricing knowledge
 - [x] Improve broad and multi-topic retrieval and always merge current published Help content.
 - [x] Add structured current public plan knowledge and grounded product/sales instructions without changing chat or support.
