@@ -2,6 +2,8 @@
  * MunchMate provider abstraction. Server-only; the admin-saved API key never
  * leaves this module and is never logged.
  */
+import { compactHistory, isContextValidationError, MESSAGE_LIMIT, splitSystem } from "./context";
+import { logMunchmateError } from "./errors.server";
 export type MunchProvider = "openai" | "anthropic";
 export type ChatTurn = { role: "user" | "assistant"; content: string };
 
@@ -13,6 +15,7 @@ export type ProviderCall = {
   messages: ChatTurn[];
   maxTokens: number;
   temperature: number;
+  retrySystem?: string;
 };
 
 export class ProviderError extends Error {
@@ -32,6 +35,24 @@ async function safeDetail(res: Response): Promise<string> {
 }
 
 export async function generateReply(input: ProviderCall): Promise<string> {
+  const prepared = { ...input, messages: compactHistory(input.messages) };
+  try {
+    return await generateOnce(prepared);
+  } catch (error) {
+    logMunchmateError("provider", error, input.provider);
+    if (!isContextValidationError(error)) throw error;
+    try {
+      return await generateOnce({ ...prepared, messages: compactHistory(input.messages, true),
+        system: input.retrySystem ?? input.system.slice(0, MESSAGE_LIMIT) });
+    } catch (retryError) {
+      logMunchmateError("provider-context-retry", retryError, input.provider);
+      throw retryError;
+    }
+  }
+}
+
+async function generateOnce(input: ProviderCall): Promise<string> {
+  const systems = splitSystem(input.system);
   if (input.provider === "anthropic") {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -44,7 +65,7 @@ export async function generateReply(input: ProviderCall): Promise<string> {
         model: input.model,
         max_tokens: input.maxTokens,
         temperature: input.temperature,
-        system: input.system,
+        system: systems.map((text) => ({ type: "text", text })),
         messages: input.messages,
       }),
     });
@@ -58,7 +79,7 @@ export async function generateReply(input: ProviderCall): Promise<string> {
       headers: { "content-type": "application/json", authorization: `Bearer ${input.apiKey}` },
       body: JSON.stringify({
         model: input.model,
-        messages: [{ role: "system", content: input.system }, ...input.messages],
+        messages: [...systems.map((content) => ({ role: "system", content })), ...input.messages],
         ...(withParams ? { max_completion_tokens: input.maxTokens, temperature: input.temperature } : {}),
       }),
     });
