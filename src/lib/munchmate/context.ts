@@ -7,14 +7,16 @@ export type ContextTurn = { role: "user" | "assistant"; content: string };
 
 /** Only the request copy is compacted; browser history and ticket transcripts stay intact. */
 export function compactHistory(messages: ContextTurn[], smaller = false): ContextTurn[] {
-  const latest = messages.findLastIndex((m) => m.role === "user");
-  if (latest < 0) return [];
-  if (messages[latest].content.length > MESSAGE_LIMIT) throw new Error(LONG_MESSAGE_ERROR);
+  let latest = messages.length - 1;
+  while (latest >= 0 && messages[latest]?.role !== "user") latest--;
   const last = messages[latest];
+  if (!last) return [];
+  if (last.content.length > MESSAGE_LIMIT) throw new Error(LONG_MESSAGE_ERROR);
   let budget = smaller ? 2000 : 10000;
   const older: ContextTurn[] = [];
   for (let i = latest - 1; i >= 0 && older.length < (smaller ? 2 : 11) && budget > 0; i--) {
     const m = messages[i];
+    if (!m) continue;
     const content = m.content.slice(0, Math.min(MESSAGE_LIMIT, smaller ? 1000 : 2000, budget));
     if (!content.trim()) continue;
     older.unshift({ role: m.role, content });
