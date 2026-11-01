@@ -8,6 +8,7 @@ import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createMunchmateGuestTicket, createMunchmateTicket, munchmateChat } from "@/lib/munchmate.functions";
 import { isAllowedLink } from "@/lib/munchmate/retrieval";
+import { CHAT_ERROR, compactHistory, LONG_MESSAGE_ERROR, MESSAGE_LIMIT } from "@/lib/munchmate/context";
 import { SUPPORT_CATEGORIES, SUPPORT_CATEGORY_LABEL, SUPPORT_PRIORITIES, SUPPORT_PRIORITY_LABEL } from "@/lib/support-model";
 import { MunchMateMascot, type MascotMood } from "./MunchMateMascot";
 
@@ -165,8 +166,12 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
   }, [open, onClose]);
 
   async function send(text: string) {
-    const content = text.trim().slice(0, 2000);
+    const content = text;
     if (!content || busy) return;
+    if (content.length > MESSAGE_LIMIT) {
+      updateActive((t) => ({ ...t, messages: [...t.messages, { id: uid(), role: "assistant", content: LONG_MESSAGE_ERROR, at: new Date().toISOString() }] }));
+      return;
+    }
     setInput("");
     const userMsg: Msg = { id: uid(), role: "user", content, at: new Date().toISOString() };
     const history = [...active.messages, userMsg];
@@ -179,15 +184,15 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
     setBusy(true);
     setThinkingLine(Math.random() < 0.35 ? THINKING_LINES[Math.floor(Math.random() * THINKING_LINES.length)]! : null);
     try {
-      const r = await chat({ data: { messages: history.map((m) => ({ role: m.role, content: m.content })) } });
+      const r = await chat({ data: { messages: compactHistory(history) } });
       updateActive((t) => ({
         ...t,
         messages: [...t.messages, { id: uid(), role: "assistant", content: r.reply, at: new Date().toISOString(), sources: r.sources, offerTicket: r.offerTicket }],
       }));
-    } catch (e) {
+    } catch {
       updateActive((t) => ({
         ...t,
-        messages: [...t.messages, { id: uid(), role: "assistant", content: (e as Error).message || "Something went wrong. Please try again.", at: new Date().toISOString(), offerTicket: true }],
+        messages: [...t.messages, { id: uid(), role: "assistant", content: CHAT_ERROR, at: new Date().toISOString(), offerTicket: true }],
       }));
     } finally {
       setBusy(false);
@@ -403,7 +408,7 @@ export default function MunchMateChat({ open, onClose }: { open: boolean; onClos
                 ref={inputRef}
                 rows={1}
                 value={input}
-                maxLength={2000}
+                maxLength={MESSAGE_LIMIT}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
@@ -471,8 +476,8 @@ function TicketForm({ signedIn, thread, onBack, submit }: { signedIn: boolean; t
         setSending(true);
         try {
           await submit(f);
-        } catch (err) {
-          setError((err as Error).message);
+        } catch {
+          setError("I couldn't create your support ticket. Please check the details and try again.");
         } finally {
           setSending(false);
         }

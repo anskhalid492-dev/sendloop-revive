@@ -20,6 +20,7 @@ import {
   sourceLinks,
 } from "@/lib/munchmate/retrieval";
 import { buildKnowledgePrompt, verifiedPricingAnswer } from "@/lib/munchmate/grounding";
+import { CHAT_ERROR, LONG_MESSAGE_ERROR, parseChatInput } from "@/lib/munchmate/context";
 
 export type MunchmateConfig = {
   enabled: boolean;
@@ -84,14 +85,6 @@ async function limit(bucket: string, max: number, windowSeconds: number) {
   if (!r.allowed) throw new Error("You're sending messages too quickly. Please wait a minute and try again.");
 }
 
-const chatInput = z.object({
-  messages: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(4000) }))
-    .min(1)
-    .max(30),
-  page: z.string().max(300).optional(),
-});
-
 export type MunchmateReply = {
   reply: string;
   sources: Array<{ title: string; url: string }>;
@@ -109,8 +102,16 @@ export const getMunchmateStatus = createServerFn({ method: "GET" }).handler(asyn
 });
 
 export const munchmateChat = createServerFn({ method: "POST" })
-  .inputValidator((input) => chatInput.parse(input))
+  .inputValidator(async (input) => {
+    try { return parseChatInput(input); }
+    catch (error) {
+      const { logMunchmateError } = await import("@/lib/munchmate/errors.server");
+      logMunchmateError("input-validation", error);
+      throw new Error(error instanceof Error && error.message === LONG_MESSAGE_ERROR ? LONG_MESSAGE_ERROR : CHAT_ERROR);
+    }
+  })
   .handler(async ({ data }): Promise<MunchmateReply> => {
+    try {
     const who = await clientKey();
     await limit(`munchmate:chat:${who}`, 20, 60);
     await limit(`munchmate:chat-day:${who}`, 300, 86400);
@@ -119,11 +120,7 @@ export const munchmateChat = createServerFn({ method: "POST" })
     const fallback = config.fallbackMessage || FALLBACK_ANSWER;
     if (!config.enabled) return { reply: "MunchMate is offline right now.", sources: [], offerTicket: true };
 
-    // Last 12 turns only; strip control chars.
-    const turns = data.messages.slice(-12).map((m) => ({
-      role: m.role,
-      content: m.content.replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, 2000),
-    }));
+    const turns = data.messages;
     const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
     const recentUser = turns.filter((t) => t.role === "user").slice(-3).map((t) => t.content).join(" ");
     const identity = identityAnswer(lastUser);
@@ -138,14 +135,14 @@ export const munchmateChat = createServerFn({ method: "POST" })
     }
     const sources = sourceLinks(hits);
     const pricingAnswer = verifiedPricingAnswer(lastUser, docs);
-    if (pricingAnswer) return { reply: pricingAnswer, sources: sourceLinks([...hits.filter((d) => d.key.startsWith("pricing:")), ...docs.filter((d) => d.key.startsWith("pricing:"))]), offerTicket: false };
+    if (pricingAnswer) return { reply: sanitizeOutput(pricingAnswer), sources: sourceLinks([...hits.filter((d) => d.key.startsWith("pricing:")), ...docs.filter((d) => d.key.startsWith("pricing:"))]), offerTicket: false };
 
     if (hits.length === 0) return { reply: fallback, sources: [], offerTicket: true };
 
     const apiKey = await decryptKey();
     if (!apiKey || !config.model) return { reply: fallback, sources, offerTicket: true };
 
-    const system = buildKnowledgePrompt(hits, fallback, config.instructions);
+    const system = buildKnowledgePrompt(hits, fallback, config.instructions, lastUser);
 
     try {
       const { generateReply } = await import("@/lib/munchmate/provider.server");
@@ -154,6 +151,7 @@ export const munchmateChat = createServerFn({ method: "POST" })
         apiKey,
         model: config.model,
         system,
+        retrySystem: buildKnowledgePrompt(hits, fallback, config.instructions, lastUser, true),
         messages: turns,
         maxTokens: Math.min(Math.max(config.maxTokens, 100), 2000),
         temperature: Math.min(Math.max(config.temperature, 0), 1),
@@ -161,8 +159,14 @@ export const munchmateChat = createServerFn({ method: "POST" })
       const reply = sanitizeOutput(raw) || fallback;
       return { reply, sources, offerTicket: shouldOfferTicket(lastUser, reply, hits.length) };
     } catch (error) {
-      console.error("MunchMate provider call failed", (error as { status?: number }).status ?? "");
-      return { reply: fallback, sources, offerTicket: true };
+      const { logMunchmateError } = await import("@/lib/munchmate/errors.server");
+      logMunchmateError("chat-provider", error, config.provider);
+      return { reply: CHAT_ERROR, sources: [], offerTicket: true };
+    }
+    } catch (error) {
+      const { logMunchmateError } = await import("@/lib/munchmate/errors.server");
+      logMunchmateError("chat", error);
+      return { reply: CHAT_ERROR, sources: [], offerTicket: true };
     }
   });
 
