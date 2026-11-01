@@ -1,9 +1,9 @@
 # Roadmap
 
 ## MunchMate chat validation
-- [ ] Bound request history and knowledge excerpts without truncating the latest valid question or stored history.
-- [ ] Add one reduced-context retry and friendly errors with server-only diagnostics.
-- [ ] Verify long/consecutive chats and both providers using isolated fixtures; do not publish.
+- [x] Bound request history and knowledge excerpts without truncating the latest valid question or stored history.
+- [x] Add one reduced-context retry and friendly errors with server-only diagnostics.
+- [x] Verify 52 isolated regressions including OpenAI/Claude request and retry fixtures; preview checks covered 80-message legacy history, three consecutive answers and friendly failure. Nothing published.
 
 ## MunchMate product and pricing knowledge
 - [x] Improve broad and multi-topic retrieval and always merge current published Help content.
