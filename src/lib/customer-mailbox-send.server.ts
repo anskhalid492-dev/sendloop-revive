@@ -105,6 +105,7 @@ export async function sendViaCustomerMailbox(
     headers?: Record<string, string>;
     attachments?: { filename: string; contentType: string; contentBase64: string }[];
   },
+  options?: { timeoutMs?: number },
 ): Promise<CustomerMailboxSend> {
   try {
     const smtp = await smtpEndpoint(admin, row);
@@ -123,7 +124,7 @@ export async function sendViaCustomerMailbox(
       ...(message.text ? { text: message.text } : {}),
       ...(message.headers ? { headers: message.headers } : {}),
       ...(message.attachments?.length ? { attachments: message.attachments } : {}),
-    });
+    }, options?.timeoutMs ? { timeoutMs: options.timeoutMs } : undefined);
     return {
       ok: !!result?.ok,
       message: result?.message ?? (result?.ok ? "Sent." : "The mail relay did not accept the send."),

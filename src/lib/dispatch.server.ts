@@ -1482,8 +1482,29 @@ export async function dispatchDueMessages(
     };
 
     // Pre-send work (AI, signature, tracking, snapshot) can push past the run
-    // deadline. Never START a provider call after it: hand the row back to the
-    // queue untouched (provider never contacted, so no duplicate is possible).
+    // deadline. Never START a provider call that could still be running when
+    // the platform kills the worker (the root cause of rows interrupted in
+    // `provider_call`), and never send again from a mailbox whose provider
+    // already timed out in this run. Hand the row back untouched: the
+    // provider was never contacted, so no duplicate is possible.
+    const callDecision = decideProviderCall({
+      nowMs: Date.now(),
+      cutoffAtMs: providerCutoffAtMs,
+      mailboxId: (account.id as string | null) ?? null,
+      slowMailboxes,
+    });
+    if (callDecision !== "send") {
+      if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "run_deadline");
+      await supabase
+        .from("campaign_messages")
+        .update({ status: "scheduled", last_error: null })
+        .eq("id", message.id)
+        .eq("status", "processing");
+      result.skipped += 1;
+      logDispatchDiagnostic({ ...diagnosticBase, phase: "rejection", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: callDecision === "defer_slow_mailbox" ? "slow_mailbox_deferred_this_run" : "provider_call_cutoff_reached" });
+      if (callDecision === "defer_slow_mailbox") continue;
+      break;
+    }
     if (options.deadlineAt && Date.now() >= options.deadlineAt.getTime()) {
       if (billable) await releaseUsage(message.workspace_id as string, "emails_monthly", 1, "run_deadline");
       await supabase
@@ -1534,7 +1555,7 @@ export async function dispatchDueMessages(
           text: finalBody,
           fromName: account.from_name,
           ...(replyTo ? { headers: { ...outboundHeaders, "Reply-To": replyTo } } : { headers: outboundHeaders }),
-        });
+        }, { timeoutMs: RELAY_SEND_TIMEOUT_MS });
         send = {
           ok: relayed.ok,
           message: relayed.message,
@@ -1579,6 +1600,7 @@ export async function dispatchDueMessages(
       const thrown = error instanceof Error ? error.message : "Sending failed.";
       if (isUncertainTransportError(thrown)) {
         // The SMTP server may already have accepted it: hold, never resend.
+        if (account.id) slowMailboxes.add(account.id as string);
         result.failed += 1;
         await holdOutcomeUnknown(thrown);
         logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
@@ -1595,6 +1617,9 @@ export async function dispatchDueMessages(
     if (!send.ok && isUncertainTransportError(send.message)) {
       // Timed-out / unreadable relay response: acceptance is unknown. Usage stays
       // reserved (fail closed) and the row is held so it can never be resent.
+      // That mailbox is skipped for the rest of this run so one slow provider
+      // cannot interrupt the whole batch.
+      if (account.id) slowMailboxes.add(account.id as string);
       result.failed += 1;
       await holdOutcomeUnknown(send.message);
       logDispatchDiagnostic({ ...diagnosticBase, phase: "provider_send", messageId: message.id, mailboxId: account.id, mailboxEligible: true, reason: "provider_outcome_unknown_transport", providerResult: "error" });
