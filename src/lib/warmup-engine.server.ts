@@ -8,6 +8,7 @@
  * job only becomes `delivered`, `bounced` or `replied` after a real provider
  * event arrived on the webhook.
  */
+import { bouncePenalty as bouncePenaltyFor, routeWarmupMessage, softSignalPenalty, warmupKindForReport, warmupReportExternalId } from "@/lib/delivery-lifecycle";
 import { isSameHealthSnapshot } from "@/lib/warmup-health-snapshot";
 import { buildWarmupMessage, buildWarmupReply } from "@/lib/warmup-content.server";
 import { evaluateSafetyViolation, type SafetyStatRow } from "@/lib/mailbox-pause-state";
@@ -1178,22 +1179,25 @@ export async function applyWarmupDeliveryEvent(args: {
   reason: string | null;
   externalId?: string | null;
   payload?: Record<string, unknown>;
+  /** Already-identified job (e.g. a bounce report matched by warmup token). */
+  jobId?: string | null;
 }): Promise<boolean> {
-  if (!args.providerMessageId) return false;
+  if (!args.providerMessageId && !args.jobId) return false;
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   // Providers report the same message id in different shapes (angle brackets,
   // URL-encoded, SendGrid's suffixed form). The stored id is matched against
   // every normalized candidate so a real delivery event is never dropped.
-  const candidates = providerMessageIdCandidates(args.providerMessageId);
-  if (!candidates.length) return false;
-  const { data: jobs } = await supabaseAdmin
+  const candidates = args.jobId ? [] : providerMessageIdCandidates(args.providerMessageId);
+  if (!args.jobId && !candidates.length) return false;
+  const jobQuery = supabaseAdmin
     .from("warmup_jobs")
     .select(
       "id, workspace_id, sending_account_id, status, delivery_state, delivered_at, conversation_id, pool_recipient_id, to_email",
-    )
-    .in("provider_message_id", candidates)
-    .limit(1);
+    );
+  const { data: jobs } = await (args.jobId
+    ? jobQuery.eq("id", args.jobId).limit(1)
+    : jobQuery.in("provider_message_id", candidates).limit(1));
   const job = ((jobs ?? []) as unknown as Array<Record<string, unknown>>)[0] as unknown as
     | (WarmupDeliveryJob & Record<string, unknown>)
     | undefined;
@@ -1422,6 +1426,8 @@ export async function applyWarmupInbound(input: {
   receivedAt?: string | null;
   /** Address of the mailbox we actually read the message from (IMAP). */
   receivingMailbox?: string | null;
+  /** Set when the message is a delivery-failure report (DSN). */
+  bounceReport?: { kind: "bounced" | "delayed" | "failed"; reason: string | null; status?: string | null } | null;
 }): Promise<boolean> {
   const token = warmupTokenFrom(input);
   if (!token) return false;
@@ -1430,7 +1436,7 @@ export async function applyWarmupInbound(input: {
   const { data: job } = await supabaseAdmin
     .from("warmup_jobs")
     .select(
-      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id, to_email",
+      "id, workspace_id, sending_account_id, recipient_account_id, status, placement, role, conversation_id, pool_recipient_id, to_email, from_email",
     )
     .eq("warmup_token", token)
     .maybeSingle();
@@ -1439,9 +1445,31 @@ export async function applyWarmupInbound(input: {
   // The token alone is not enough: the message must have been read from the
   // mailbox it was addressed to. A forwarded or copied warmup email seen in
   // some other mailbox is claimed (kept out of the inbox) but never confirms.
+  // A bounce report quoting the warmup email, read in the SENDING mailbox, is
+  // the bounce for that exact job (previously swallowed here as "foreign",
+  // which is why warmup bounces never reached the counts or health).
   const reader = (input.receivingMailbox ?? "").trim().toLowerCase();
   const intended = String((job as Record<string, unknown>)["to_email"] ?? "").trim().toLowerCase();
-  if (reader && intended && reader !== intended) {
+  const route = routeWarmupMessage({
+    isBounceReport: !!input.bounceReport,
+    reader,
+    sender: String((job as Record<string, unknown>)["from_email"] ?? ""),
+    intended,
+  });
+  if (route === "bounce" && input.bounceReport) {
+    const kind = warmupKindForReport(input.bounceReport.kind);
+    await applyWarmupDeliveryEvent({
+      kind,
+      jobId: job.id as string,
+      providerMessageId: null,
+      email: intended || null,
+      reason: input.bounceReport.reason,
+      externalId: warmupReportExternalId(job.id as string, kind),
+      payload: { source: "imap_bounce_report", status: input.bounceReport.status ?? null },
+    });
+    return true;
+  }
+  if (route === "foreign") {
     console.warn(`[warmup] token ${token} read at ${reader}, addressed to ${intended}; not confirming`);
     return true;
   }
@@ -1664,7 +1692,8 @@ export async function recalculateHealth(
     const deliveredRate = ((totals["delivered"] ?? 0) / sent) * 100;
     const replyRate = ((totals["replied"] ?? 0) / sent) * 100;
 
-    const bouncePenalty = Math.min(40, Math.round(bounceRate * 4));
+    // Any confirmed bounce costs at least one point (no rounding to zero).
+    const bouncePenalty = bouncePenaltyFor(totals["bounced"] ?? 0, sent);
     if (bouncePenalty) {
       score -= bouncePenalty;
       factors.push({
@@ -1693,6 +1722,17 @@ export async function recalculateHealth(
         label: "Provider send failures",
         impact: -failPenalty,
         detail: `${failRate.toFixed(1)}% of attempts were rejected by the provider.`,
+      });
+    }
+
+    // Deferrals and provider rejections are real (weaker) negative signals.
+    const softPenalty = softSignalPenalty(totals["deferred"] ?? 0, totals["rejected"] ?? 0, sent);
+    if (softPenalty) {
+      score -= softPenalty;
+      factors.push({
+        label: "Deferrals and rejections",
+        impact: -softPenalty,
+        detail: `${(totals["deferred"] ?? 0) + (totals["rejected"] ?? 0)} warmup sends were deferred or rejected in the last 14 days.`,
       });
     }
 

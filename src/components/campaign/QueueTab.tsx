@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { SendFailureDescription } from "@/lib/delivery-lifecycle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -58,6 +59,10 @@ import type { CampaignBuilder } from "./useCampaignBuilder";
  * because this recipient bounced earlier in the sequence. The reason text is
  * turned into a short label by the shared `@/lib/bounce-reason` helper.
  */
+function failureOf(m: QueueMessage): SendFailureDescription | null {
+  return ((m as unknown as { failure?: SendFailureDescription | null }).failure ?? null);
+}
+
 function bounceOf(m: QueueMessage): BounceExplanation | null {
   const isBounce = Boolean(m.bounced_at) || m.cancelled_reason === "recipient_bounced";
   if (!isBounce) return null;
@@ -208,7 +213,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-8">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-9">
         {([...MESSAGE_STATUSES, "bounced", "unsubscribed"] as const).map((s) => (
           <button
             key={s}
@@ -225,6 +230,12 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
             <p className="text-xl font-semibold tabular-nums">{counts?.[s] ?? 0}</p>
           </button>
         ))}
+        <div className="surface-card px-4 py-3 text-left" title="Interrupted or timed-out sends whose outcome is unknown. Never resent automatically.">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            held for review
+          </p>
+          <p className="text-xl font-semibold tabular-nums">{(counts as { unknown?: number } | undefined)?.unknown ?? 0}</p>
+        </div>
       </div>
 
       {byMailbox.length ? (
@@ -427,6 +438,12 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                       >
                         {bounceOf(m) ? "bounced" : m.status}
                       </Badge>
+                      {!bounceOf(m) && m.status === "failed" && failureOf(m) ? (
+                        <p className="mt-0.5 max-w-[16rem] text-xs text-muted-foreground">
+                          {failureOf(m)!.category === "outcome_unknown" ? "Held for review" : failureOf(m)!.label}
+                          {failureOf(m)!.code ? ` · ${failureOf(m)!.code}` : ""}
+                        </p>
+                      ) : null}
                       {bounceOf(m) ? (
                         <p className="mt-0.5 max-w-[16rem] text-xs text-destructive">
                           {bounceOf(m)!.label}
@@ -541,8 +558,14 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                   ) : null}
                 </div>
               ) : null}
+              {failureOf(detail) && !bounceOf(detail) ? (
+                <div className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                  <p className="font-medium">{failureOf(detail)!.label}</p>
+                  {failureOf(detail)!.code ? <p className="mt-1">Server code: {failureOf(detail)!.code}</p> : null}
+                </div>
+              ) : null}
               {detail.last_error && !bounceOf(detail) ? (
-                <p className="rounded-lg bg-destructive/10 p-3 text-xs text-destructive">
+                <p className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
                   {detail.last_error}
                 </p>
               ) : null}

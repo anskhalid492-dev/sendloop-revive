@@ -58,7 +58,7 @@ export function relayConfigured(): boolean {
   return !!getRelaySecret() || !!getServiceRoleKey();
 }
 
-async function callRelay<T>(body: Record<string, unknown>): Promise<T> {
+async function callRelay<T>(body: Record<string, unknown>, timeoutMs: number = RELAY_TIMEOUT_MS): Promise<T> {
   const relaySecret = getRelaySecret();
   const serviceRoleKey = getServiceRoleKey();
   if (!relaySecret && !serviceRoleKey) {
@@ -80,7 +80,7 @@ async function callRelay<T>(body: Record<string, unknown>): Promise<T> {
     method: "POST",
     headers,
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(RELAY_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   const text = await response.text();
@@ -122,8 +122,11 @@ export async function relayTestMailboxEndpoints(
 export async function relaySendMail(
   smtp: MailEndpoint,
   message: RelaySendMessage,
+  options?: { timeoutMs?: number },
 ): Promise<RelaySendResult> {
-  return callRelay<RelaySendResult>({ action: "send", smtp, message });
+  // Callers inside a time-limited worker pass a timeout that finishes before
+  // the platform kill, so an abort is recorded instead of the run dying.
+  return callRelay<RelaySendResult>({ action: "send", smtp, message }, options?.timeoutMs ?? RELAY_TIMEOUT_MS);
 }
 
 export type RelayCheckedMessage = {

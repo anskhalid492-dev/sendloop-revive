@@ -11,6 +11,7 @@
  * A mailbox is only polled while it is `status = 'connected'` AND `is_active`.
  * Failures are recorded per mailbox and never stop the loop.
  */
+import { originalMessageIdFromBounce, warmupKindForReport } from "@/lib/delivery-lifecycle";
 import { parseDeliveryReport } from "@/lib/dsn-parse";
 import { extractInboundBody } from "@/lib/inbound-body";
 import {
@@ -167,7 +168,12 @@ async function processFolderMessages(
         contentType: message.contentType ?? null,
         contentTransferEncoding: message.contentTransferEncoding ?? null,
       });
+      // Delivery-failure reports are parsed up front so warmup can attribute a
+      // report that quotes its own email to the exact warmup job.
+      const isBounceReport = looksLikeBounce({ from: message.from, subject: message.subject });
+      const report = isBounceReport ? parseDeliveryReport({ text: body.text, subject: message.subject }) : null;
       const warmupClaimed = await applyWarmupInbound({
+        bounceReport: report ? { kind: report.kind, reason: report.reason, status: report.status } : null,
         from: extractEmail(message.from),
         to: extractEmail(message.to) ?? mailbox,
         subject: message.subject ?? null,
@@ -185,13 +191,32 @@ async function processFolderMessages(
         continue;
       }
 
-      if (looksLikeBounce({ from: message.from, subject: message.subject })) {
+      if (isBounceReport && report) {
         const recipient = bouncedRecipient({
           text: body.text,
           subject: message.subject,
           mailbox,
         });
-        if (!recipient) {
+        // The original Message-ID quoted in the report is the reliable link to
+        // the exact send; the recipient address is only a fallback.
+        const originalId = originalMessageIdFromBounce(body.text ?? message.text, message.messageId ?? null);
+        if (originalId) {
+          const { applyWarmupDeliveryEvent } = await import("@/lib/warmup-engine.server");
+          const warmupKind = warmupKindForReport(report.kind);
+          const matchedWarmup = await applyWarmupDeliveryEvent({
+            kind: warmupKind,
+            providerMessageId: originalId,
+            email: recipient,
+            reason: report.reason,
+            externalId: `report:${originalId.toLowerCase()}:${warmupKind}`,
+            payload: { source: "imap_bounce_report", status: report.status ?? null },
+          });
+          if (matchedWarmup) {
+            outcome.warmup += 1;
+            continue;
+          }
+        }
+        if (!recipient && !originalId) {
           outcome.skipped += 1;
           console.warn(
             `[imap-poll] ${row.email_address}: bounce report with no readable recipient (uid ${message.uid}).`,
@@ -201,20 +226,29 @@ async function processFolderMessages(
         // Only explicit invalid-recipient evidence is a bounce. Sender-policy
         // refusals (including 550 5.7.x) are failed sends: the reason is kept,
         // but a valid recipient is not labelled or suppressed as bounced.
-        const report = parseDeliveryReport({ text: body.text, subject: message.subject });
-        const applied = await applyDeliveryEvent({
+        let applied = await applyDeliveryEvent({
           kind: report.kind,
           email: recipient,
-          providerMessageId: null,
+          providerMessageId: originalId,
           reason: report.reason,
         });
+        // Quoted id unknown (some servers rewrite it): fall back to the
+        // previous recipient-address match.
+        if (applied.status !== "applied" && originalId && recipient) {
+          applied = await applyDeliveryEvent({
+            kind: report.kind,
+            email: recipient,
+            providerMessageId: null,
+            reason: report.reason,
+          });
+        }
         if (applied.status === "applied") {
           if (report.kind === "bounced") outcome.bounces += 1;
           else outcome.skipped += 1;
         } else {
           outcome.skipped += 1;
           console.warn(
-            `[imap-poll] ${row.email_address}: ${report.kind} for ${recipient} matched no send — ${applied.reason ?? "unmatched"}.`,
+            `[imap-poll] ${row.email_address}: ${report.kind} for ${recipient ?? originalId} matched no send — ${applied.reason ?? "unmatched"}.`,
           );
         }
         continue;
