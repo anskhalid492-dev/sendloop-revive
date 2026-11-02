@@ -145,8 +145,11 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // Strip vendor identity and raw provider errors before the queue reaches
     // the customer; the untouched values stay in the database for admins.
     const { redactBounceReason } = await import("@/lib/bounce-reason");
+    const { describeSendFailure } = await import("@/lib/delivery-lifecycle");
     messagesRes.data = (messagesRes.data ?? []).map((row) => ({
       ...row,
+      // Readable category/code from the raw provider reply (no vendor identity).
+      failure: describeSendFailure((row as { last_error?: string | null }).last_error),
       provider: null,
       // The bounce reason is shown to the customer, with vendor identity,
       // endpoints and keys redacted by the shared helper.
@@ -159,7 +162,17 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         : null,
     })) as never;
 
+    // Held for review: interrupted/timed-out sends whose outcome is unknown.
+    const { count: unknownCount } = await context.supabase
+      .from("campaign_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("campaign_id", data.campaignId)
+      .eq("status", "failed")
+      .is("bounced_at", null)
+      .or("attempts.gte.999,last_error.ilike.send_outcome_unknown%");
+
     const counts = {
+      unknown: Number(unknownCount ?? 0),
       ...(Object.fromEntries(
         MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
       ) as Record<MessageStatus, number>),
