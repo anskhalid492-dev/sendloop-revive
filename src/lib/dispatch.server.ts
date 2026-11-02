@@ -9,6 +9,8 @@
  */
 import { phaseMarker, outcomeUnknownReason, isOutcomeUnknownReason, isUncertainTransportError, NEVER_RETRY_ATTEMPTS } from "./campaign-send-phase";
 import { classifyEmailOutcome } from "./email-outcome";
+import { decideProviderCall, providerCutoffFromDeadline, RELAY_SEND_TIMEOUT_MS } from "./delivery-lifecycle";
+import { SCHEDULER_BUDGET_MS } from "./campaign-scheduler";
 import { enqueueWebhookEvent } from "@/lib/api/v1/webhook-delivery.server";
 import {
   MAX_MAILBOX_HOURLY_MESSAGE,
@@ -784,6 +786,12 @@ export async function dispatchDueMessages(
   const limit = options.limit ?? 10;
   const now = options.now ?? new Date();
   const result = emptyResult();
+  // Latest moment a provider call may begin in this run (see delivery-lifecycle).
+  const providerCutoffAtMs = options.deadlineAt
+    ? providerCutoffFromDeadline(options.deadlineAt.getTime(), SCHEDULER_BUDGET_MS)
+    : null;
+  // Mailboxes whose provider timed out in this run: not used again until next run.
+  const slowMailboxes = new Set<string>();
 
   const { data: campaignRow, error: campaignError } = await supabase
     .from("campaigns")
