@@ -226,12 +226,22 @@ async function processFolderMessages(
         // Only explicit invalid-recipient evidence is a bounce. Sender-policy
         // refusals (including 550 5.7.x) are failed sends: the reason is kept,
         // but a valid recipient is not labelled or suppressed as bounced.
-        const applied = await applyDeliveryEvent({
+        let applied = await applyDeliveryEvent({
           kind: report.kind,
           email: recipient,
           providerMessageId: originalId,
           reason: report.reason,
         });
+        // Quoted id unknown (some servers rewrite it): fall back to the
+        // previous recipient-address match.
+        if (applied.status !== "applied" && originalId && recipient) {
+          applied = await applyDeliveryEvent({
+            kind: report.kind,
+            email: recipient,
+            providerMessageId: null,
+            reason: report.reason,
+          });
+        }
         if (applied.status === "applied") {
           if (report.kind === "bounced") outcome.bounces += 1;
           else outcome.skipped += 1;
