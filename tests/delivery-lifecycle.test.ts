@@ -79,7 +79,7 @@ describe("readable send failures", () => {
   });
 
   it("temporary deferral is deferred", () => {
-    expect(describeSendFailure("421 4.7.0 Try again later, closing connection")?.category).toBe("deferred");
+    expect(describeSendFailure("451 4.3.0 Temporary server error. Please try again later")?.category).toBe("deferred");
   });
 
   it("sender-side refusal is not a bounce", () => {
