@@ -140,8 +140,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const clicked = delivery?.clicked ?? 0;
   const replied = delivery?.replied ?? queue?.replied ?? 0;
   const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
-  // Customer mailboxes send via the relay and return no delivery receipt, so
-  // "delivered" = everything accepted that did not bounce back.
+  // Provider acceptance is not a delivery receipt.
   const delivered = confirmedDelivered;
   const held = delivery?.held ?? 0;
   const failed = delivery?.failed ?? queue?.failed ?? 0;
@@ -154,12 +153,14 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
 
   const progress = totalLeads ? Math.min(100, Math.round((contacted / totalLeads) * 100)) : 0;
 
-  // Funnel mix bar — proportions of the real send outcomes.
+  // Mutually exclusive current message outcomes, not overlapping engagement.
+  const current = delivery?.currentOutcomes;
   const funnel = [
-    { label: "Delivered", value: delivered, color: "bg-primary" },
-    { label: "Opened", value: opened, color: "bg-sky-500" },
-    { label: "Replied", value: replied, color: "bg-emerald-500" },
-    { label: "Bounced", value: bounced, color: "bg-destructive" },
+    { label: "Accepted (current)", value: current?.accepted ?? 0, color: "bg-primary" },
+    { label: "Confirmed delivered", value: current?.delivered ?? delivered, color: "bg-chart-3" },
+    { label: "Bounced", value: current?.bounced ?? bounced, color: "bg-destructive" },
+    { label: "Failed", value: current?.failed ?? failed, color: "bg-chart-4" },
+    { label: "Held for review", value: current?.held ?? held, color: "bg-chart-5" },
   ];
   const funnelTotal = funnel.reduce((sum, f) => sum + f.value, 0);
 

@@ -35,19 +35,31 @@ export type MessageOutcomeCounts = Record<MessageOutcome, number> & {
   providerAccepted: number;
 };
 
-export function countMessageOutcomes(rows: readonly OutcomeFacts[]): MessageOutcomeCounts {
-  const counts: MessageOutcomeCounts = { total: 0, attempted: 0, providerAccepted: 0, queued: 0, sending: 0, accepted: 0, delivered: 0, bounced: 0, failed: 0, held: 0, cancelled: 0 };
-  const unique = new Map<string, OutcomeFacts>();
+/** Latest snapshot owns status; immutable provider evidence survives repeated reads. */
+export function mergeMessageSnapshots<T extends OutcomeFacts>(rows: readonly T[]): T[] {
+  const unique = new Map<string, T>();
   for (const row of rows) {
     const previous = unique.get(row.id);
-    if (!previous || (row.updated_at ?? "") >= (previous.updated_at ?? "")) unique.set(row.id, row);
+    if (!previous) { unique.set(row.id, { ...row }); continue; }
+    const newer = (row.updated_at ?? "") >= (previous.updated_at ?? "") ? row : previous;
+    const older = newer === row ? previous : row;
+    const merged = { ...older, ...newer };
+    for (const field of ["sent_at", "delivered_at", "bounced_at"] as const) {
+      const a = previous[field]; const b = row[field];
+      if (a || b) merged[field] = !a ? b : !b ? a : a < b ? a : b;
+    }
+    unique.set(row.id, merged);
   }
-  for (const row of unique.values()) {
+  return [...unique.values()];
+}
+
+export function countMessageOutcomes(rows: readonly OutcomeFacts[]): MessageOutcomeCounts {
+  const counts: MessageOutcomeCounts = { total: 0, attempted: 0, providerAccepted: 0, queued: 0, sending: 0, accepted: 0, delivered: 0, bounced: 0, failed: 0, held: 0, cancelled: 0 };
+  for (const row of mergeMessageSnapshots(rows)) {
     const outcome = messageOutcome(row);
     counts.total += 1;
     counts[outcome] += 1;
     if (row.sent_at) counts.providerAccepted += 1;
-    // attempts=999 is a hold sentinel, never 999 actual attempts.
     if (row.sent_at || ["sending", "delivered", "bounced", "failed", "held"].includes(outcome)) counts.attempted += 1;
   }
   return counts;

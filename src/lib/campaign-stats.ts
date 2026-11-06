@@ -1,4 +1,4 @@
-import { countMessageOutcomes, type MessageOutcomeCounts } from "@/lib/message-outcomes";
+import { countMessageOutcomes, mergeMessageSnapshots, type MessageOutcomeCounts } from "@/lib/message-outcomes";
 import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
 /**
  * The single source of truth for campaign statistics.
@@ -293,7 +293,7 @@ export function collapseMessageUnits(
   events?: MessageEventSignals,
 ): Map<string, Unit> {
   const units = new Map<string, Unit>();
-  for (const m of messages) {
+  for (const m of mergeMessageSnapshots(messages)) {
     const leadKey = String(m.recipient_id ?? m.lead_id ?? m.id);
     const step = Math.max(1, Number(m.step_order ?? 1) || 1);
     const key = m.id;

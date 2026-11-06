@@ -174,8 +174,6 @@ export const getAnalyticsOverview = createServerFn({ method: "POST" })
         total.unsubscribed += s.unsubscribed;
         total.complained += s.complained;
         total.failed += s.failed;
-        total.held = (total.held ?? 0) + s.held;
-        total.attempted = (total.attempted ?? 0) + s.attempted;
       }
       return total;
     };

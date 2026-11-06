@@ -26,6 +26,11 @@ describe("distinct campaign outcome reconciliation", () => {
   it("held never becomes failed, even with a legacy failed timestamp", () => {
     expect(messageOutcome({ id: "throwaway-held", ...held, failed_at: at })).toBe("held");
   });
+  it("latest status and immutable evidence agree across repeated snapshots", () => {
+    const snapshots = [{ id: "throwaway-snapshot", status: "sent", sent_at: at, delivered_at: at, updated_at: "2026-11-06T10:00:00Z" }, { id: "throwaway-snapshot", status: "failed", ...held, updated_at: "2026-11-06T11:00:00Z" }];
+    expect(countMessageOutcomes(snapshots)).toMatchObject({ total: 1, delivered: 1, failed: 0, held: 0, providerAccepted: 1 });
+    expect(computeCampaignStats({ campaignId: "throwaway", leads: 1, messages: snapshots, from, to })).toMatchObject({ sent: 1, delivered: 1, held: 0 });
+  });
   it("provider acceptance alone is not delivery", () => {
     expect(messageOutcome({ id: "throwaway-sent", status: "sent", sent_at: at })).toBe("accepted");
   });
