@@ -1,3 +1,4 @@
+import { LEAD_OUTCOME_LABELS, type LeadOutcome } from "@/lib/message-outcomes";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -203,7 +204,7 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
 
   /** Exports the current page — the browser never holds the whole audience. */
   const exportCsv = async () => {
-    const header = "email,first_name,last_name,company,job_title,location,status,current_step\n";
+    const header = "email,first_name,last_name,company,job_title,location,message_outcome,opened,replied,unsubscribed,current_step\n";
     const body = rows
       .map((r) =>
         [
@@ -213,8 +214,10 @@ export function LeadsTab({ builder }: { builder: CampaignBuilder }) {
           r.lead?.company ?? "",
           r.lead?.job_title ?? "",
           r.lead?.country ?? "",
-          LEAD_DELIVERY_LABELS[(r.deliveryState ?? "not_contacted") as LeadDeliveryState] ??
-            r.status,
+          LEAD_OUTCOME_LABELS[(r.outcome ?? "not_contacted") as LeadOutcome] ?? r.status,
+          r.engagement?.opened ? "yes" : "no",
+          r.engagement?.replied ? "yes" : "no",
+          r.engagement?.unsubscribed ? "yes" : "no",
           r.current_step ?? 0,
         ]
           .map((v) => `"${String(v).replace(/"/g, '""')}"`)

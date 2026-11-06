@@ -149,10 +149,10 @@ export const LEAD_OUTCOME_LABELS: Record<LeadOutcome, string> = {
  */
 const LEAD_PRIORITY: MessageOutcome[] = ["bounced", "delivered", "accepted", "held", "failed", "sending", "queued", "cancelled"];
 
-export function leadOutcomeCounts(
+/** Each lead's single current outcome, keyed by recipient_id (or lead_id / message id). */
+export function leadOutcomeByKey(
   rows: readonly (OutcomeFacts & { recipient_id?: string | null; lead_id?: string | null })[],
-  totalLeads: number,
-): Record<LeadOutcome, number> {
+): Map<string, MessageOutcome> {
   const best = new Map<string, number>();
   for (const row of mergeMessageSnapshots(rows)) {
     const key = String(row.recipient_id ?? row.lead_id ?? row.id);
@@ -160,8 +160,16 @@ export function leadOutcomeCounts(
     const prev = best.get(key);
     if (prev === undefined || rank < prev) best.set(key, rank);
   }
+  return new Map([...best].map(([k, rank]) => [k, LEAD_PRIORITY[rank]!]));
+}
+
+export function leadOutcomeCounts(
+  rows: readonly (OutcomeFacts & { recipient_id?: string | null; lead_id?: string | null })[],
+  totalLeads: number,
+): Record<LeadOutcome, number> {
+  const byLead = leadOutcomeByKey(rows);
   const counts = Object.fromEntries(LEAD_OUTCOMES.map(o => [o, 0])) as Record<LeadOutcome, number>;
-  for (const rank of best.values()) counts[LEAD_PRIORITY[rank]!] += 1;
-  counts.not_contacted = Math.max(0, totalLeads - best.size);
+  for (const outcome of byLead.values()) counts[outcome] += 1;
+  counts.not_contacted = Math.max(0, totalLeads - byLead.size);
   return counts;
 }
