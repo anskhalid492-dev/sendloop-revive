@@ -1,4 +1,4 @@
-import { countMessageOutcomes, mergeMessageSnapshots, type MessageOutcomeCounts } from "@/lib/message-outcomes";
+import { countMessageOutcomes, leadOutcomeCounts, mergeMessageSnapshots, type LeadOutcome, type MessageOutcomeCounts } from "@/lib/message-outcomes";
 import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
 /**
  * The single source of truth for campaign statistics.
@@ -15,8 +15,12 @@ import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
  *
  * Definitions
  * -----------
- * - sent:        the email was accepted by the sending provider (`sent_at`)
- * - delivered:   explicit per-message delivery evidence only; acceptance is not delivery
+ * - sent:        cumulative: the email was accepted by the sending provider (`sent_at`)
+ * - accepted:    current outcome: accepted, with no later receipt, bounce or failure
+ * - delivered:   confirmed delivered — explicit per-message delivery evidence only;
+ *                provider acceptance is never counted as delivery
+ * - bounced:     recorded rejection of an email that was actually sent; a cancelled,
+ *                never-sent follow-up is never a bounce
  * - opened / clicked / replied / unsubscribed / complained: real provider signals
  * - bounced / failed: mutually exclusive terminal outcomes (a bounce is not a failure)
  * - scheduled:   pending work — a planned email that has not been sent or cancelled
@@ -46,6 +50,9 @@ export type CampaignStats = {
   queued: number;
   sending: number;
   sent: number;
+  /** Current outcome: accepted by the provider, no later receipt/bounce/failure. */
+  accepted: number;
+  /** Confirmed delivered: explicit per-message delivery evidence only. */
   delivered: number;
   opened: number;
   clicked: number;
@@ -61,7 +68,11 @@ export type CampaignStats = {
   failed: number;
   held: number;
   attempted: number;
+  /** Definitive never-accepted failures the engine may retry (never held). */
+  retryable: number;
   currentOutcomes?: MessageOutcomeCounts;
+  /** Each lead once, by the current outcome of its own messages. */
+  leadOutcomes?: Record<LeadOutcome, number>;
   remaining: number;
   /** Pending emails (all steps), de-duplicated per recipient+step. */
   scheduled: number;
@@ -83,6 +94,7 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     queued: n(row["queued"]),
     sending: n(row["sending"]),
     sent: n(row["sent"]),
+    accepted: n(row["accepted"]),
     delivered: n(row["delivered"]),
     opened: n(row["opened"]),
     clicked: n(row["clicked"]),
@@ -96,6 +108,7 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     failed: n(row["failed"]),
     held: n(row["held"]),
     attempted: n(row["attempted"]),
+    retryable: n(row["retryable"]),
     remaining: n(row["remaining"]),
     scheduled: n(row["scheduled"] ?? row["queued"]),
     cancelled: n(row["cancelled"]),
@@ -117,6 +130,7 @@ export const EMPTY_CAMPAIGN_STATS = (
   queued: 0,
   sending: 0,
   sent: 0,
+  accepted: 0,
   delivered: 0,
   opened: 0,
   clicked: 0,
