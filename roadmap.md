@@ -1,5 +1,11 @@
 # Roadmap
 
+## Campaign sending reconciliation
+- [ ] Audit exact production campaign and each held message read-only against acceptance/event/job evidence.
+- [ ] Unify current outcome counts and distinguish accepted from confirmed delivery in preview.
+- [ ] Harden stale transitions and idempotency without changing production history or retrying ambiguous mail.
+- [ ] Run isolated regressions and deliver actual distinct-ID reconciliation and remaining provider evidence gaps; do not publish.
+
 ## MunchMate chat validation
 - [x] Bound request history and knowledge excerpts without truncating the latest valid question or stored history.
 - [x] Add one reduced-context retry and friendly errors with server-only diagnostics.
