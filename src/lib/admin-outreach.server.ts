@@ -799,7 +799,7 @@ export async function getAdminCampaignInsights(campaignId: string, days = 30) {
       failedBreakdown: m.topCounts(failures.map((f) => m.errorLabel(f.last_error))),
       smtpCodes: m.topCounts(problems.map((p) => m.smtpCode(p.bounce_reason ?? p.last_error))),
       bounceReasons: m.topCounts(bounces.map((b) => m.errorLabel(b.bounce_reason ?? b.last_error))),
-      unknownOutcomes: unknown,
+      unknownOutcomes: totals.unknown,
       mailboxProblems: [
         ...m
           .topCounts(problems.map((p) => accountEmail[p.sending_account_id] ?? null))
