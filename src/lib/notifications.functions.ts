@@ -12,6 +12,7 @@ export type Notification = {
   entity_id: string | null;
   read: boolean;
   created_at: string;
+  reply?: import("@/lib/reply-source.server").ReplySourceDetails | null;
 };
 
 export const listNotifications = createServerFn({ method: "GET" })
@@ -23,7 +24,20 @@ export const listNotifications = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(30);
     if (error) throw new Error(error.message);
-    const items = (data ?? []) as Notification[];
+    const { dedupeNotifications } = await import("@/lib/reply-source");
+    const items = dedupeNotifications((data ?? []) as Notification[]);
+    const convIds = items
+      .filter((n) => n.type === "reply" && n.entity_type === "conversation" && n.entity_id)
+      .map((n) => n.entity_id as string);
+    if (convIds.length) {
+      try {
+        const { resolveReplySources } = await import("@/lib/reply-source.server");
+        const map = await resolveReplySources(context.supabase, convIds);
+        for (const n of items) if (n.entity_id && map.has(n.entity_id)) n.reply = map.get(n.entity_id);
+      } catch (e) {
+        console.warn("[notifications] source resolve failed:", e instanceof Error ? e.message : e);
+      }
+    }
     return { items, unread: items.filter((n) => !n.read).length };
   });
 
