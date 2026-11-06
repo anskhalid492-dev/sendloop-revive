@@ -40,12 +40,6 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
       tone: "text-destructive",
     },
     {
-      label: "Failed sends",
-      value: formatCount(data?.failed ?? 0),
-      sub: `${formatPct(rate(data?.failed ?? 0, sent))} of sends`,
-      tone: "text-amber-600 dark:text-amber-400",
-    },
-    {
       label: "Unsubscribe rate",
       value: formatPct(rate(data?.unsubscribed ?? 0, sent)),
       sub: `${formatCount(data?.unsubscribed ?? 0)} unsubscribed`,
