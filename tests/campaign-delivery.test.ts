@@ -152,7 +152,7 @@ describe("campaign overview aggregation", () => {
     const row = rows[0]!;
     expect(row.leads).toBe(2);
     expect(row.sent).toBe(2);
-    expect(row.reached).toBe(1);
+    expect(row.reached).toBe(0); // confirmed delivery needs a receipt
     expect(row.opened).toBe(1);
     expect(row.openRate).toBe(100);
     expect(row.replies).toBe(1);
