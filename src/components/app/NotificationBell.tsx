@@ -12,6 +12,8 @@ import {
   markNotificationRead,
 } from "@/lib/notifications.functions";
 import { cn } from "@/lib/utils";
+import { REPLY_SOURCE_LABELS, REPLY_SOURCE_STYLES } from "@/lib/reply-source";
+import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 function timeAgo(iso: string) {
@@ -24,8 +26,18 @@ function timeAgo(iso: string) {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+function formatWhen(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const markRead = useServerFn(markNotificationRead);
   const markAll = useServerFn(markAllNotificationsRead);
   const remove = useServerFn(deleteNotification);
@@ -97,14 +109,58 @@ export function NotificationBell() {
                   className={cn("group flex gap-3 px-4 py-3", !n.read && "bg-accent/40")}
                 >
                   <button
-                    className="flex-1 text-left"
-                    onClick={() => !n.read && readOne.mutate({ data: { id: n.id } })}
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => {
+                      if (!n.read) readOne.mutate({ data: { id: n.id } });
+                      if (n.reply?.source === "warmup_reply") void navigate({ to: "/warmup" });
+                      else if (n.entity_type === "conversation" && n.entity_id)
+                        void navigate({ to: "/inbox", search: { conversation: n.entity_id } });
+                    }}
                   >
-                    <p className="text-sm font-medium">{n.title}</p>
-                    {n.message ? (
-                      <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>
-                    ) : null}
-                    <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</p>
+                    {n.reply ? (
+                      <>
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={cn(
+                              "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                              REPLY_SOURCE_STYLES[n.reply.source],
+                            )}
+                          >
+                            {REPLY_SOURCE_LABELS[n.reply.source]}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {formatWhen(n.reply.receivedAt ?? n.created_at)}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-sm font-medium">
+                          {n.reply.fromName ? `${n.reply.fromName} · ` : ""}
+                          <span className="font-normal text-muted-foreground">{n.reply.fromEmail}</span>
+                        </p>
+                        {n.reply.subject || n.message ? (
+                          <p className="truncate text-xs font-medium">{n.reply.subject ?? n.message}</p>
+                        ) : null}
+                        {n.reply.preview ? (
+                          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.reply.preview}</p>
+                        ) : null}
+                        {n.reply.source === "campaign_reply" && n.reply.campaignName ? (
+                          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                            Campaign: {n.reply.campaignName}
+                          </p>
+                        ) : n.reply.source === "warmup_reply" && n.reply.mailboxEmail ? (
+                          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                            Warmup mailbox: {n.reply.mailboxEmail}
+                          </p>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium">{n.title}</p>
+                        {n.message ? (
+                          <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>
+                        ) : null}
+                        <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</p>
+                      </>
+                    )}
                   </button>
                   <button
                     aria-label="Delete notification"

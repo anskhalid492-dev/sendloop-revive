@@ -384,7 +384,18 @@ export const getConversation = createServerFn({ method: "GET" })
       for (const p of profiles ?? []) nameById.set(p.id, p.full_name ?? p.email ?? "Teammate");
     }
 
+    let replySource: import("@/lib/reply-source").ReplySource | null = null;
+    if (conversation.has_inbound) {
+      try {
+        const { resolveReplySources } = await import("@/lib/reply-source.server");
+        replySource = (await resolveReplySources(context.supabase, [data.id])).get(data.id)?.source ?? null;
+      } catch {
+        replySource = null;
+      }
+    }
+
     return {
+      replySource,
       conversation: {
         ...conversation,
         assignee_name: conversation.assigned_to

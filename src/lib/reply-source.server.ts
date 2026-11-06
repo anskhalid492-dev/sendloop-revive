@@ -101,7 +101,7 @@ export async function resolveReplySources(
     const subject = (m?.subject as string | null) ?? null;
     const source = classifyReplySource({
       campaignMessageId: (m?.campaign_message_id as string | null) ?? null,
-      warmupMatched: Boolean(warmupAccount) || (m ? false : false),
+      warmupMatched: Boolean(warmupAccount),
       isAutoReply: m ? classifyInbound(subject ?? "", body) === "ooo" : false,
     });
     const campaignId = source === "campaign_reply" ? ((c.campaign_id as string | null) ?? null) : null;
