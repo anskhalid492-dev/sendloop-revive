@@ -106,9 +106,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         .select("id,status,delivery_status,sent_at,delivered_at,bounced_at,failed_at,last_error,attempts,updated_at,sending_account_id")
         .eq("campaign_id", data.campaignId).order("id")),
     ]);
-    const outcomeRes = { error: null };
     const total = inventory.length;
-    if (outcomeRes.error) throw new Error(outcomeRes.error.message);
 
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");

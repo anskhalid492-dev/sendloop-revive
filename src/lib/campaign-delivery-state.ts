@@ -45,8 +45,8 @@ export function messageDeliveryState(m: DeliveryMessage): string {
   if (m["bounced_at"] || m["delivery_status"] === "bounced" || reason === "recipient_bounced") {
     return "bounced";
   }
-  if (m["delivered_at"]) return "delivered";
-  if (isHeldOutcomeUnknown({ last_error: m["last_error"], attempts: Number(m["attempts"] ?? 0) })) return "held";
+  if (accepted && m["delivered_at"]) return "delivered";
+  if (isHeldOutcomeUnknown({ last_error: m["last_error"] ?? null, attempts: Number(m["attempts"] ?? 0) })) return "held";
   if (m["failed_at"] || m["status"] === "failed") return "failed";
   if (reason === "recipient_complained") return "complained";
   if (reason === "recipient_unsubscribed") return "unsubscribed";
