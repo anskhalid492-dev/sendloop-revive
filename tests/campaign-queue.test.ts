@@ -175,7 +175,8 @@ describe("queue-mode crash recovery (at-most-once)", () => {
           c.eq = (col: string, v: unknown) => { if (col === "id") u.ids.push(v as string); return c; };
           c.in = (_: string, ids: string[]) => { u.ids.push(...ids); return c; };
           c.is = () => c;
-          c.then = (r: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(r);
+          c.select = () => c;
+          c.then = (r: (v: unknown) => unknown) => Promise.resolve({ data: u.ids.map(id => ({ id })), error: null }).then(r);
           return c;
         };
         return base;

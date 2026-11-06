@@ -18,7 +18,7 @@ function unit(over: Partial<Unit> & { leadKey: string; campaignId: string }): Un
     cancelled: false,
     ...over,
     signals: {
-      delivered_at: null,
+      delivered_at: "2026-01-10T10:00:00Z",
       opened_at: null,
       clicked_at: null,
       replied_at: null,

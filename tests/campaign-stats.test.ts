@@ -20,7 +20,7 @@ describe("campaign stats source", () => {
       queued: 98,
       sending: 2,
       sent: 1502,
-      delivered: 1400,
+      delivered: 0400,
       opened: 500,
       clicked: 120,
       replied: 42,
@@ -53,7 +53,7 @@ describe("campaign stats source", () => {
     expect(rate(1, 0)).toBeNull();
   });
 
-  it("counts accepted, non-bounced SMTP sends as delivered everywhere", () => {
+  it("requires a delivery receipt instead of inferring SMTP delivery", () => {
     const messages = [
       {
         id: "m1",
@@ -82,9 +82,9 @@ describe("campaign stats source", () => {
     const series = computeTimeseries(units, { bucket: "day", from, to });
     const accounts = computeAccountTotals(units, { from, to });
 
-    expect(stats).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
-    expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 1 });
-    expect(series[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
-    expect(accounts[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
+    expect(stats).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
+    expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 0 });
+    expect(series[0]).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
+    expect(accounts[0]).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
   });
 });
