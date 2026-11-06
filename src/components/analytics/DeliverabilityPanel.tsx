@@ -54,7 +54,7 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
       {query.isLoading ? (
         <Skeleton className="mt-3 h-32 w-full rounded-xl" />
       ) : (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tiles.map((tile) => (
             <div key={tile.label} className="rounded-xl border border-border/50 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
