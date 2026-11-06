@@ -199,7 +199,10 @@ supabase
   const bounceAtByCampaign = new Map<string, Map<string, number>>();
   const bounceAtByAccount = new Map<string, Map<string, number>>();
   for (const m of messageRows) {
-    const at = ts(m["bounced_at"]);
+    // Message-level bounces of SENT emails only (shared outcome rules); a
+    // cancelled, never-sent follow-up is never a bounce.
+    if (messageOutcome(m as never) !== "bounced") continue;
+    const at = ts(m["bounced_at"]) ?? ts(m["sent_at"]);
     if (at === null) continue;
     const key = String(m["id"]);
     bounceAtByPerson.set(key, at);
@@ -261,9 +264,10 @@ supabase
     const cid = m["campaign_id"] as string | null;
     if (!cid) continue;
     const status = String(m["status"] ?? "");
+    // Held-for-review messages are never owed work: they are never resent.
     const open =
       ["pending", "scheduled", "processing", "queued"].includes(status) ||
-      (status === "failed" && isRetryableFailure(m["last_error"] as string | null));
+      isRetryableMessage(m as never);
     if (open) pendingMessagesPerCampaign.set(cid, (pendingMessagesPerCampaign.get(cid) ?? 0) + 1);
   }
   for (const r of recipientRows) {
@@ -299,7 +303,7 @@ supabase
     return {
       sent: sentMsgs.length,
       // Provider receipts, never inferred from acceptance.
-      delivered: sentMsgs.filter(m => !(m as Record<string, unknown>)["bounced_at"]).length,
+      delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
@@ -329,7 +333,7 @@ supabase
     b.sent += 1;
     if (rejectedAfterSend(m)) b.rejected = (b.rejected ?? 0) + 1;
   }
-  // Delivered per day = that day's sends minus that day's bounced people.
+  // Confirmed delivered per day: per-message receipts only.
   const bouncesPerDay = new Map<string, number>();
   for (const at of bounceAtByPerson.values()) {
     if (at < rangeStart) continue;
@@ -621,13 +625,8 @@ supabase
 
 
   /* -------------------------------------------------- actions & insights */
-  const retryableFailures = messageRows.filter(
-    (m) =>
-      m["status"] === "failed" &&
-      !m["sent_at"] &&
-      !personBounced(m) &&
-      isRetryableFailure((m["last_error"] as string | null) ?? null),
-  ).length;
+  // Same shared rule as the campaign page: never held, bounced or accepted.
+  const retryableFailures = messageRows.filter((m) => isRetryableMessage(m as never)).length;
 
   const leadsTotal = leadsCountRes.count ?? 0;
   const unreadReplies = (conversationsRes.data ?? []).length;
