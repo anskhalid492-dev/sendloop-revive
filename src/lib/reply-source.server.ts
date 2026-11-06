@@ -97,7 +97,7 @@ export async function resolveReplySources(
   for (const cid of ids) {
     const c = convById.get(cid);
     const m = latest.get(cid);
-    if (!c) continue;
+    if (!c || !m) continue;
     const warmupAccount = (headerIdsByConv.get(cid) ?? []).map((x) => warmupIds.get(x)).find(Boolean) ?? null;
     const body = (m?.body as string | null) ?? "";
     const subject = (m?.subject as string | null) ?? null;
