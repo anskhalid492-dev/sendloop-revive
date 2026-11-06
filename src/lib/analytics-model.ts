@@ -141,5 +141,7 @@ export function formatCount(value: number): string {
 }
 
 export function deliveryPresentation(r: AnalyticsSummary): { value: string; description: string } {
+  // The receipt feed could not be read: unknown, never a confirmed zero.
+  if (r.deliveryEventsAvailable === false) return { value: "—", description: "Delivery receipts unavailable right now" };
   return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} of sent · delivery receipts only` };
 }
