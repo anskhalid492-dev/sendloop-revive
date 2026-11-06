@@ -748,14 +748,29 @@ export async function getAdminCampaignInsights(campaignId: string, days = 30) {
       .in("id", campaign.sending_account_ids?.length ? campaign.sending_account_ids : ["00000000-0000-0000-0000-000000000000"]),
   ]);
 
-  const unknown = unknownAll;
+  // One shared, distinct-message-ID classification (src/lib/message-outcomes.ts),
+  // so Admin matches the customer's campaign, dashboard, queue and exports.
+  void [sentAll, sentBounced, rejectedBounced, failedAll, failedBounced, unknownAll, unknownSent, unknownFailedNotBounced, queued];
+  const { countMessageOutcomes } = await import("@/lib/message-outcomes");
+  const outcomeRows = await fetchAllRows<any>(() =>
+    db()
+      .from("campaign_messages")
+      .select("id, status, delivery_status, sent_at, delivered_at, bounced_at, failed_at, last_error, attempts, updated_at")
+      .eq("campaign_id", campaignId)
+      .order("id", { ascending: true }),
+  );
+  const outcomes = countMessageOutcomes(outcomeRows);
   const totals = {
-    sent: sentAll - unknownSent,
-    bouncedAfterSend: sentBounced,
-    bounced: sentBounced + rejectedBounced,
-    failed: Math.max(0, failedAll - failedBounced - unknownFailedNotBounced),
-    unknown,
-    queued,
+    sent: outcomes.providerAccepted,
+    accepted: outcomes.accepted,
+    delivered: outcomes.delivered,
+    bouncedAfterSend: outcomes.bounced,
+    bounced: outcomes.bounced,
+    failed: outcomes.failed,
+    unknown: outcomes.held,
+    queued: outcomes.queued + outcomes.sending,
+    cancelled: outcomes.cancelled,
+    total: outcomes.total,
   };
 
   const events: { at: string | null; kind: "sent" | "bounced" | "failed" }[] = [];

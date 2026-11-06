@@ -483,7 +483,7 @@ function CampaignDetail({
         <StatCard label="Sent" value={t ? num(t.sent) : "…"} hint="Accepted by mailbox" />
         <StatCard
           label="Confirmed delivered"
-          value={num(data.stats.delivered ?? 0)}
+          value={t ? num(t.delivered ?? 0) : "…"}
           hint="Delivery receipts only"
         />
         <StatCard label="Bounced" value={t ? num(t.bounced) : "…"} />
