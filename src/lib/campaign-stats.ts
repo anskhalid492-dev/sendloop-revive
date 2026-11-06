@@ -576,11 +576,9 @@ export function computeTimeseries(
 
   const countedUnsub = new Set<string>();
   for (const u of all) {
-    const bouncedAt = u.signals.bounced_at;
+    const bouncedAt = unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null;
     at(u.sentAt, "sent");
-    if (!u.signals.bounced_at) {
-      at(u.signals.delivered_at, "delivered");
-    }
+    if (unitConfirmedDelivered(u)) at(u.signals.delivered_at, "delivered");
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
