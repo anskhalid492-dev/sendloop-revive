@@ -346,112 +346,20 @@ export async function campaignStats(ctx: ApiContext) {
   const id = pathId(ctx.params["campaignId"], "campaign id");
   const campaign = await loadCampaign(ctx, id);
 
-  const countOf = async (column: string, values: string[]) => {
-    const { count } = await ctx.admin
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", id)
-      .eq("workspace_id", ctx.auth.workspaceId)
-      .in(column, values);
-    return count ?? 0;
-  };
-
-  const [sent, scheduled, failed, cancelled, bounced, opened, clicked, replied, unsubscribed, recipients] =
-    await Promise.all([
-      countOf("status", ["sent"]),
-      countOf("status", ["pending", "scheduled", "processing"]),
-      countOf("status", ["failed"]),
-      countOf("status", ["cancelled"]),
-      // Bounced comes from the shared per-person rule, so a recipient whose
-      // remaining mail was cancelled after their bounce is still counted.
-      (async () => {
-        const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
-          "@/lib/cancellation-reason"
-        );
-        const { data } = await ctx.admin
-          .from("campaign_messages")
-          .select(OUTCOME_COLUMNS)
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId)
-          .or(OUTCOME_OR_FILTER)
-          .limit(5000);
-        return countOutcomeRecipients((data ?? []) as never[]).bounced;
-      })(),
-      (async () => {
-        const { count } = await ctx.admin
-          .from("campaign_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId)
-          .not("opened_at", "is", null);
-        return count ?? 0;
-      })(),
-      (async () => {
-        const { count } = await ctx.admin
-          .from("campaign_messages")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId)
-          .not("clicked_at", "is", null);
-        return count ?? 0;
-      })(),
-      (async () => {
-        const { count } = await ctx.admin
-          .from("campaign_replies")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId);
-        return count ?? 0;
-      })(),
-      (async () => {
-        const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
-          "@/lib/cancellation-reason"
-        );
-        const [{ count }, { data }] = await Promise.all([
-          ctx.admin
-            .from("campaign_recipients")
-            .select("id", { count: "exact", head: true })
-            .eq("campaign_id", id)
-            .eq("workspace_id", ctx.auth.workspaceId)
-            .eq("status", "unsubscribed"),
-          ctx.admin
-            .from("campaign_messages")
-            .select(OUTCOME_COLUMNS)
-            .eq("campaign_id", id)
-            .eq("workspace_id", ctx.auth.workspaceId)
-            .or(OUTCOME_OR_FILTER)
-            .limit(5000),
-        ]);
-        return Math.max(count ?? 0, countOutcomeRecipients((data ?? []) as never[]).unsubscribed);
-      })(),
-      (async () => {
-        const { count } = await ctx.admin
-          .from("campaign_recipients")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", id)
-          .eq("workspace_id", ctx.auth.workspaceId);
-        return count ?? 0;
-      })(),
-    ]);
-
-  const rate = (part: number) => (sent > 0 ? Number(((part / sent) * 100).toFixed(2)) : 0);
-
-  return {
-    data: {
-      object: "campaign_stats",
-      campaign_id: id,
-      status: campaign.status,
-      recipients,
-      totals: { sent, scheduled, failed, cancelled, bounced, opened, clicked, replied, unsubscribed },
-      rates: {
-        open_rate: rate(opened),
-        click_rate: rate(clicked),
-        reply_rate: rate(replied),
-        bounce_rate: rate(bounced),
-        unsubscribe_rate: rate(unsubscribed),
-      },
-    },
-  };
+  const { fetchOneCampaignStats } = await import("@/lib/campaign-stats.server");
+  const { stats } = await fetchOneCampaignStats(ctx.admin, ctx.auth.workspaceId, id);
+  const { openRatePercent, clickRatePercent, replyRatePercent, bounceRatePercent, unsubscribeRatePercent } = await import("@/lib/engagement-rates");
+  const people = { contacted: stats.contacted, bounced: stats.bounced };
+  return { data: {
+    object: "campaign_stats", campaign_id: id, status: campaign.status, recipients: stats.leads,
+    totals: { sent: stats.sent, delivered: stats.delivered, scheduled: stats.scheduled, sending: stats.sending,
+      failed: stats.failed, held: stats.held, attempted: stats.attempted, cancelled: stats.cancelled,
+      bounced: stats.bounced, opened: stats.opened, clicked: stats.clicked, replied: stats.replied, unsubscribed: stats.unsubscribed },
+    current_outcomes: stats.currentOutcomes,
+    rates: { open_rate: openRatePercent(stats.opened, people), click_rate: clickRatePercent(stats.clicked, people),
+      reply_rate: replyRatePercent(stats.replied, people), bounce_rate: bounceRatePercent(stats.bounced, stats.sent),
+      unsubscribe_rate: unsubscribeRatePercent(stats.unsubscribed, people) },
+  } };
 }
 
 // ---------------------------------------------------------------------------
