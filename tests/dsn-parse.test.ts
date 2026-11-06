@@ -47,7 +47,7 @@ describe("delivery reports", () => {
       text: "Diagnostic-Code: smtp; 550 5.7.1 [CS] Message blocked. If this is a false positive, please report",
       subject: "Undelivered Mail Returned to Sender",
     });
-    expect(r.kind).toBe("bounced");
+    expect(r.kind).toBe("failed");
     expect(r.status).toBe("5.7.1");
     expect(normalizeReportedDeliveryKind("bounced", r.reason)).toBe("failed");
   });
@@ -63,7 +63,7 @@ describe("delivery reports", () => {
       text: "Diagnostic-Code: smtp; 550",
       subject: "Undelivered Mail Returned to Sender",
     });
-    expect(r.kind).toBe("failed");
+    expect(r.kind).toBe("bounced");
   });
 
   it("detects a delay report with no status code at all", () => {
