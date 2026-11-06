@@ -22,7 +22,6 @@ import {
   Monitor,
   Moon,
   Send,
-  Server,
   Settings,
   Sparkles,
   Sun,
