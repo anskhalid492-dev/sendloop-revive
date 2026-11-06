@@ -302,7 +302,7 @@ supabase
     return {
       sent: sentMsgs.length,
       // Provider receipts, never inferred from acceptance.
-      delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
+      delivered: messageRows.filter(m => within(m["delivered_at"] ?? m["sent_at"], from, to) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
@@ -334,7 +334,7 @@ supabase
   }
   // Confirmed delivered per day: per-message receipts only.
   for (const [key, b] of buckets) {
-    b.delivered = messageRows.filter(m => m["delivered_at"] && String(m["delivered_at"]).slice(0, 10) === key && messageOutcome(m as never) === "delivered").length;
+    b.delivered = messageRows.filter(m => String(m["delivered_at"] ?? m["sent_at"] ?? "").slice(0, 10) === key && messageOutcome(m as never) === "delivered").length;
     delete b.rejected;
   }
   for (const r of replyRows) {
@@ -409,7 +409,7 @@ supabase
       sentLifetime: sentMine.length,
       sentToday,
       sentInRange: mine.filter(m => within(m["sent_at"], rangeStart, nowMs + 1)).length,
-      delivered: mine.filter(m => within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
+      delivered: mine.filter(m => within(m["delivered_at"] ?? m["sent_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplies,
       positive,
       meetings,
@@ -489,7 +489,7 @@ supabase
           : (snapshot.state.detail ?? (a["last_error"] as string | null) ?? null),
       healthScore: (a["health_score"] as number | null) ?? null,
       sent: inRange.length,
-      delivered: messageRows.filter(m => m["sending_account_id"] === id && within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
+      delivered: messageRows.filter(m => m["sending_account_id"] === id && within(m["delivered_at"] ?? m["sent_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       bounced: countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       replies: replyCount,
       dailyLimit,

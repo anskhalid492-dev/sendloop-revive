@@ -363,7 +363,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       return {
         sent: windowMessages.length,
         // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
-        delivered: windowMessages.filter((m) => m.delivered_at && !m.bounced_at).length,
+        delivered: windowMessages.filter((m) => (m.delivered_at || m.sent_at) && !m.bounced_at).length,
         // Engagement counts people (same rule as Analytics), not reply messages.
         replies: replyPeople(windowReplies),
         positive: replyPeople(windowReplies.filter((r) => r.sentiment === "positive")),

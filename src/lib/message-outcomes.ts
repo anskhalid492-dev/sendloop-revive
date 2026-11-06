@@ -39,7 +39,7 @@ export const MESSAGE_OUTCOME_LABELS: Record<MessageOutcome, string> = {
   queued: "Queued",
   sending: "Sending",
   accepted: "Accepted",
-  delivered: "Confirmed delivered",
+  delivered: "Delivered",
   bounced: "Bounced",
   failed: "Failed",
   held: "Held for review",
@@ -74,7 +74,8 @@ export function messageOutcome(m: OutcomeFacts): MessageOutcome {
   if (m.delivery_status === "failed" || m.failed_at) return "failed";
   if (m.status === "cancelled") return "cancelled";
   if (m.status === "failed") return "failed";
-  if (m.sent_at) return "accepted";
+  // Owner rule: accepted by the mail server and not bounced = Delivered.
+  if (m.sent_at) return "delivered";
   if (m.status === "processing") return "sending";
   return "queued";
 }
