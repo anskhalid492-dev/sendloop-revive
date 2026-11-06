@@ -156,7 +156,6 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   // Mutually exclusive current message outcomes, not overlapping engagement.
   const current = delivery?.currentOutcomes;
   const funnel = [
-    { label: "Accepted (current)", value: current?.accepted ?? 0, color: "bg-primary" },
     { label: "Delivered", value: delivered, color: "bg-chart-3" },
     { label: "Bounced", value: current?.bounced ?? bounced, color: "bg-destructive" },
     { label: "Failed", value: current?.failed ?? failed, color: "bg-chart-4" },
