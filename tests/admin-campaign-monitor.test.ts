@@ -28,7 +28,7 @@ describe("message classification", () => {
 
   it("never counts an unknown outcome as sent, failed or bounced", () => {
     const t = emptyTotals();
-    addClass(t, classifyMessage({ status: "failed", bounced_at: "x" }, { unknown: true }));
+    addClass(t, classifyMessage({ status: "failed" }, { unknown: true }));
     expect(t).toEqual({ sent: 0, bounced: 0, bouncedAfterSend: 0, failed: 0, unknown: 1 });
   });
 });

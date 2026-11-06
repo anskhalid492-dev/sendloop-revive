@@ -18,6 +18,7 @@ function recipient(id: string, reason: string | null) {
       step_order: 1,
       status: "sent",
       sent_at: sentAt,
+      ...(reason === "recipient_bounced" ? { bounced_at: stoppedAt } : {}),
       updated_at: sentAt,
     },
     {

@@ -12,7 +12,7 @@ const base = {
 };
 
 describe("campaign stats de-duplication", () => {
-  it("counts a retried message once", () => {
+  it("accounts for distinct retry records without hiding the earlier failure", () => {
     const stats = computeCampaignStats({
       campaignId: "c1",
       leads: 1,
@@ -22,7 +22,7 @@ describe("campaign stats de-duplication", () => {
       ] as never,
     });
     expect(stats.sent).toBe(1);
-    expect(stats.failed).toBe(0);
+    expect(stats.failed).toBe(1);
     expect(stats.contacted).toBe(1);
   });
 

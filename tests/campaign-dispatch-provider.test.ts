@@ -101,7 +101,7 @@ function fakeBackend(options: FakeOptions = {}) {
         return { data: [{ ...account, daily_limit: options.mailboxLimit ?? account.daily_limit }], error: null };
       }
       if (this.table === "campaign_messages" && this.operation === "update") {
-        return { data: this.patch.status === "processing" ? [{ id: message.id }] : null, error: null };
+        return { data: this.columns === "id" ? [{ id: message.id }] : null, error: null };
       }
       if (this.table === "campaign_messages" && this.head) {
         const count = this.columns === "id" ? (options.sentToday ?? 0) : 0;

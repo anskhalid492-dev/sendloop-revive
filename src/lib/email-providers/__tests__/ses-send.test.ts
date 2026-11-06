@@ -259,7 +259,8 @@ describe("accepted → sent transition", () => {
       from: () => ({
         update(patch: Record<string, unknown>) {
           updates.push(patch);
-          return { eq: async () => ({ error: null }) };
+          const chain: any = { eq: () => chain, is: () => chain, select: async () => ({ data: [{ id: "msg-1" }], error: null }) };
+          return chain;
         },
       }),
     };

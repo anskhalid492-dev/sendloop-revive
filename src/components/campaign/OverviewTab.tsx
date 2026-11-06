@@ -19,7 +19,6 @@ import { STEP_TYPE_LABELS } from "@/lib/campaign-model";
 import { formatInCampaignTimezone, queueCounters } from "@/lib/campaign-display";
 import {
   openRatePercent,
-  reachable,
   replyRatePercent,
   unsubscribeRatePercent,
 } from "@/lib/engagement-rates";
@@ -143,7 +142,8 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
   // Customer mailboxes send via the relay and return no delivery receipt, so
   // "delivered" = everything accepted that did not bounce back.
-  const delivered = Math.max(confirmedDelivered, reachable({ sent, bounced }));
+  const delivered = confirmedDelivered;
+  const held = delivery?.held ?? 0;
   const failed = delivery?.failed ?? queue?.failed ?? 0;
   const delayed = delivery?.delayed ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? queue?.unsubscribed ?? 0;
@@ -210,7 +210,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <p className="mt-1 text-xs text-muted-foreground">
             {counters.scheduled.toLocaleString()} scheduled · {counters.processing.toLocaleString()} processing ·{" "}
             {counters.sent.toLocaleString()} sent · {counters.failed.toLocaleString()} failed ·{" "}
-            {counters.cancelled.toLocaleString()} cancelled · {completed} finished the sequence
+            {held.toLocaleString()} held for review · {counters.cancelled.toLocaleString()} cancelled · {completed} finished the sequence
           </p>
         </div>
       </section>
@@ -220,7 +220,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
         <HeadlineCard icon={Send} label="Emails sent" value={sent} />
         <HeadlineCard
           icon={Mail}
-          label="Delivered"
+          label="Confirmed delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
         />
@@ -300,6 +300,8 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 hint="Internal send failures only"
                 tone={failed > 0 ? "text-destructive" : undefined}
               />
+              <MiniStat label="Held for review" value={held} hint="Not failed; never resent automatically" />
+              <MiniStat label="Distinct attempted" value={delivery?.attempted ?? 0} />
               <MiniStat label="Clicked" value={clicked} />
               <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
               <MiniStat label="Delayed" value={delayed} hint="Retrying" />
@@ -354,7 +356,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 value={delivery?.processing ?? 0}
                 hint="Handed to the provider"
               />
-              <MiniStat label="Delivered today" value={today?.delivered ?? 0} />
+              <MiniStat label="Confirmed delivered today" value={today?.delivered ?? 0} />
               <MiniStat label="Opened today" value={today?.opened ?? 0} hint="Unique recipients" />
               <MiniStat label="Clicked today" value={today?.clicked ?? 0} hint="Unique recipients" />
               <MiniStat label="Replied today" value={today?.replied ?? 0} hint="Unique recipients" />

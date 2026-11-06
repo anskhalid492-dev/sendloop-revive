@@ -72,14 +72,14 @@ export async function recoverUnprovenProcessing(
   const cutoff = new Date(now.getTime() - STALE_PROCESSING_MINUTES * 60_000).toISOString();
   const { data: stuck } = await client
     .from("campaign_messages")
-    .select("id, last_error")
+    .select("id, last_error, updated_at")
     .eq("campaign_id", campaignId)
     .eq("status", "processing")
     .is("sent_at", null)
     .is("provider_message_id", null)
     .lte("updated_at", cutoff)
     .limit(200);
-  const rows = (stuck ?? []) as { id: string; last_error?: string | null }[];
+  const rows = (stuck ?? []) as { id: string; last_error?: string | null; updated_at?: string | null }[];
   if (!rows.length) return 0;
 
   const registry = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
@@ -109,6 +109,7 @@ export async function recoverUnprovenProcessing(
       .from("campaign_messages")
       .update({ status: "failed", last_error: outcomeUnknownReason(row.last_error), attempts: NEVER_RETRY_ATTEMPTS })
       .eq("id", row.id)
+      .eq("last_error", row.last_error ?? "")
       .eq("status", "processing")
       .is("sent_at", null)
       .is("provider_message_id", null);

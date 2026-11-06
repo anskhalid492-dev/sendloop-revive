@@ -44,26 +44,26 @@ describe("delivered never exceeds accepted sends minus bounced people", () => {
     const stats = computeCampaignStats({ messages, leads: 3, from, to });
     expect(stats.sent).toBe(3);
     expect(stats.bounced).toBe(1);
-    expect(stats.delivered).toBe(2);
+    expect(stats.delivered).toBe(0);
   });
 
   it("per-mailbox totals", () => {
     const [row] = computeAccountTotals(units, { from, to });
     expect(row!.sent).toBe(3);
     expect(row!.bounced).toBe(1);
-    expect(row!.delivered).toBe(2);
+    expect(row!.delivered).toBe(0);
   });
 
   it("timeseries buckets", () => {
     const point = computeTimeseries(units, { bucket: "day", from, to })[0]!;
     expect(point.sent).toBe(3);
     expect(point.bounced).toBe(1);
-    expect(point.delivered).toBe(2);
+    expect(point.delivered).toBe(0);
   });
 
   it("analytics unit totals", () => {
     const totals = computeUnitTotals(units, { from, to });
-    expect(totals.delivered).toBe(totals.sent - totals.bounced);
+    expect(totals.delivered).toBe(0);
   });
 
   it("shared helper ignores an inflated provider confirmation", () => {

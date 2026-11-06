@@ -28,9 +28,9 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
 
   const tiles = [
     {
-      label: "Delivery rate",
-      value: formatPct(rate(data?.delivered ?? 0, sent)),
-      sub: `${formatCount(data?.delivered ?? 0)} delivered`,
+      label: "Confirmed delivery rate",
+      value: sent && !data?.delivered ? "—" : formatPct(rate(data?.delivered ?? 0, sent)),
+      sub: `${formatCount(data?.delivered ?? 0)} confirmed delivered`,
       tone: "text-emerald-600 dark:text-emerald-400",
     },
     {

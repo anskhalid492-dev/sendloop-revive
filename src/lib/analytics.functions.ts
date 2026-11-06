@@ -287,6 +287,8 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       unsubscribed: s.unsubscribed,
       complained: s.complained,
       failed: s.failed,
+      held: s.held,
+      attempted: s.attempted,
     }));
 
     // With a mailbox filter the table must only report what that mailbox did,
@@ -418,7 +420,7 @@ export const getFunnelDrilldown = createServerFn({ method: "POST" })
       const q = scopeAnalyticsQuery(client
         .from("campaign_messages")
         .select("id, lead_id, campaign_id, to_email, sent_at")
-        .eq("status", "sent")
+        .not("sent_at", "is", null)
         .order("sent_at", { ascending: false })
         .limit(data.limit), data, "sent_at");
       const { data: msgs, error } = await q;

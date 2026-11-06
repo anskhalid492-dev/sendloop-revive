@@ -23,7 +23,7 @@ import { fetchAllRows } from "@/lib/supabase-batch";
 type Client = any;
 
 const MESSAGE_COLUMNS =
-  "id, campaign_id, sending_account_id, recipient_id, lead_id, step_order, variant_id, status, delivery_status, scheduled_at, sent_at, delivered_at, opened_at, clicked_at, replied_at, bounced_at, complained_at, unsubscribed_at, failed_at, delayed_at, updated_at, cancelled_reason";
+  "id, campaign_id, sending_account_id, recipient_id, lead_id, step_order, variant_id, status, delivery_status, scheduled_at, sent_at, delivered_at, opened_at, clicked_at, replied_at, bounced_at, complained_at, unsubscribed_at, failed_at, delayed_at, updated_at, cancelled_reason, last_error, attempts";
 
 /** Provider event names mapped onto the signal they prove. */
 const EVENT_SIGNALS: Record<string, SignalKey> = {

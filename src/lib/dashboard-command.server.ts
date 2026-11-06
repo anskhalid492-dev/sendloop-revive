@@ -41,6 +41,7 @@ import {
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
 import { mailboxActivityCopy } from "@/lib/activity-copy";
+import { messageOutcome } from "@/lib/message-outcomes";
 import { outcomeRecipientKey } from "@/lib/cancellation-reason";
 
 type AnyClient = {
@@ -138,7 +139,7 @@ const [
       supabase
         .from("campaign_messages")
         .select(
-          "id, campaign_id, lead_id, recipient_id, sending_account_id, status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, bounced_at, replied_at, unsubscribed_at, complained_at, failed_at, last_event_at, delivery_status, last_error, cancelled_reason, updated_at",
+          "id, campaign_id, lead_id, recipient_id, sending_account_id, status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, bounced_at, replied_at, unsubscribed_at, complained_at, failed_at, last_event_at, delivery_status, last_error, attempts, step_order, cancelled_reason, updated_at",
         )
         .eq("workspace_id", workspaceId)
         .gte("created_at", fetchSince),
@@ -333,7 +334,7 @@ supabase
       // filtering send rows left delivered == sent next to a non-zero bounce
       // count. Customer mailboxes send over SMTP and never report a delivery
       // confirmation, so `delivered_at` can never be the base.
-      delivered: Math.max(0, sentMsgs.length - windowBounced - sentRejected),
+      delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
@@ -371,7 +372,7 @@ supabase
     bouncesPerDay.set(key, (bouncesPerDay.get(key) ?? 0) + 1);
   }
   for (const [key, b] of buckets) {
-    b.delivered = Math.max(0, b.sent - (bouncesPerDay.get(key) ?? 0) - (b.rejected ?? 0));
+    b.delivered = messageRows.filter(m => m["delivered_at"] && String(m["delivered_at"]).slice(0, 10) === key && messageOutcome(m as never) === "delivered").length;
     delete b.rejected;
   }
   for (const r of replyRows) {
@@ -443,12 +444,9 @@ supabase
       runLabel: status.label,
       nextRunAt: status.nextRunAt,
       leads: leadsPerCampaign.get(id) ?? 0,
-      sentLifetime: Number(c["emails_sent_count"] ?? 0) || sentMine.length,
+      sentLifetime: sentMine.length,
       sentToday,
-      delivered: Math.max(
-        0,
-        inRange.length - inRange.filter(rejectedAfterSend).length - countBounced(bounceAtByCampaign.get(id), rangeStart, nowMs + 1),
-      ),
+      delivered: mine.filter(m => within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplies,
       positive,
       meetings,
@@ -528,10 +526,7 @@ supabase
           : (snapshot.state.detail ?? (a["last_error"] as string | null) ?? null),
       healthScore: (a["health_score"] as number | null) ?? null,
       sent: inRange.length,
-      delivered: Math.max(
-        0,
-        inRange.length - inRange.filter(rejectedAfterSend).length - countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
-      ),
+      delivered: messageRows.filter(m => m["sending_account_id"] === id && within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       bounced: countBounced(bounceAtByAccount.get(id), rangeStart, nowMs + 1),
       replies: replyCount,
       dailyLimit,

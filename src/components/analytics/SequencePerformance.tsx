@@ -64,7 +64,7 @@ export function SequencePerformance({ filters }: { filters: AnalyticsFilters }) 
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="py-2 pr-3">Step</th>
                 <th className="py-2 pr-3">Sent</th>
-                <th className="py-2 pr-3">Delivered</th>
+                <th className="py-2 pr-3">Confirmed delivered</th>
                 <th className="py-2 pr-3">Open</th>
                 <th className="py-2 pr-3">Reply</th>
                 <th className="py-2 pr-3">Positive</th>

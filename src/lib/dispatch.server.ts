@@ -739,8 +739,17 @@ export async function applySentPatch(
   messageId: string,
   patch: Record<string, unknown>,
 ): Promise<boolean> {
-  const { error } = await supabase.from("campaign_messages").update(patch).eq("id", messageId);
-  if (!error) return true;
+  const write = async (value: Record<string, unknown>) => {
+    const result = await supabase.from("campaign_messages").update(value).eq("id", messageId)
+      .eq("status", "processing").is("bounced_at", null).is("failed_at", null).select("id");
+    if (result.error || result.data?.length) return result;
+    // A webhook won the race. Preserve its current state and store acceptance only.
+    const evidence = { ...value };
+    delete evidence["status"]; delete evidence["last_error"]; delete evidence["attempts"];
+    return supabase.from("campaign_messages").update(evidence).eq("id", messageId).is("sent_at", null).select("id");
+  };
+  const { error, data } = await write(patch);
+  if (!error) return Boolean(data?.length);
   const optional = ["message_id", "message_type"];
   const missing = optional.filter((column) =>
     `${error.message ?? ""}`.includes(`campaign_messages.${column}`) ||
@@ -749,8 +758,8 @@ export async function applySentPatch(
   if (!missing.length) return false;
   const reduced: Record<string, unknown> = { ...patch };
   for (const column of optional) delete reduced[column];
-  const retry = await supabase.from("campaign_messages").update(reduced).eq("id", messageId);
-  return !retry.error;
+  const retry = await write(reduced);
+  return !retry.error && Boolean(retry.data?.length);
 }
 
 /** Send every due message of a campaign through its mailbox provider. */
@@ -1075,7 +1084,11 @@ export async function dispatchDueMessages(
             ? { bounced_at: new Date().toISOString(), delivery_status: "bounced", bounce_reason: reason.slice(0, 500) }
             : {}),
         })
-        .eq("id", message.id);
+        .eq("id", message.id)
+        .is("sent_at", null)
+        .is("bounced_at", null)
+        .is("delivered_at", null)
+        .in("status", ["pending", "scheduled", "processing"]);
     };
     /** Possibly-accepted send: held for review, excluded from every retry. */
     const holdOutcomeUnknown = async (detail: string) => {
@@ -1087,7 +1100,11 @@ export async function dispatchDueMessages(
           attempts: NEVER_RETRY_ATTEMPTS,
         })
         .eq("id", message.id)
-        .eq("status", "processing");
+        .eq("status", "processing")
+        .is("sent_at", null)
+        .is("provider_message_id", null)
+        .is("delivered_at", null)
+        .is("bounced_at", null);
     };
 
     const suppressionReason = suppressed.get((message.to_email ?? "").toLowerCase());
@@ -2130,9 +2147,9 @@ export async function completeAcceptedProcessingMessages(
     .eq("campaign_id", campaignId)
     .eq("status", "processing")
     .is("sent_at", null)
-    .lte("created_at", cutoff)
+    .lte("updated_at", cutoff)
     .limit(200);
-  const rows = (stuck ?? []) as { id: string }[];
+  const rows = (stuck ?? []) as { id: string; updated_at?: string | null }[];
   if (!rows.length) return 0;
 
   const admin = registryClient ?? (await import("@/integrations/supabase/client.server")).supabaseAdmin;
@@ -2156,7 +2173,7 @@ export async function completeAcceptedProcessingMessages(
   for (const row of rows) {
     const entry = accepted.get(row.id);
     if (!entry) continue;
-    await supabase
+    let write = supabase
       .from("campaign_messages")
       .update({
         status: "sent",
@@ -2167,8 +2184,14 @@ export async function completeAcceptedProcessingMessages(
         last_error: null,
       })
       .eq("id", row.id)
-      .eq("status", "processing");
-    repaired += 1;
+      .eq("status", "processing")
+      .is("sent_at", null)
+      .is("bounced_at", null)
+      .is("failed_at", null);
+    if (row.updated_at) write = write.eq("updated_at", row.updated_at);
+    const { data: written, error } = await write.select("id");
+    if (error) throw new Error(error.message);
+    if (written?.length) repaired += 1;
   }
   return repaired;
 }

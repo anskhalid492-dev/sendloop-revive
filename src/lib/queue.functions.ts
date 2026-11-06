@@ -7,6 +7,8 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { countMessageOutcomes, messageOutcome, type OutcomeFacts } from "@/lib/message-outcomes";
+import { fetchAllRows } from "@/lib/supabase-batch";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -39,6 +41,9 @@ export type QueueMessage = {
   created_at: string;
   sending_account_id: string | null;
   bounced_at: string | null;
+  delivered_at?: string | null;
+  delivery_status?: string | null;
+  outcome?: ReturnType<typeof messageOutcome>;
   bounce_reason: string | null;
   cancelled_reason: string | null;
 };
@@ -52,7 +57,7 @@ export type MailboxInfo = {
 };
 
 const QUEUE_COLUMNS =
-  "id, campaign_id, lead_id, step_order, status, to_email, subject, body, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at, sending_account_id, bounced_at, bounce_reason, cancelled_reason";
+  "id, campaign_id, lead_id, step_order, status, to_email, subject, body, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at, sending_account_id, bounced_at, bounce_reason, cancelled_reason, delivered_at, delivery_status, failed_at";
 
 export const listCampaignQueue = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -63,6 +68,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         status: z.enum(MESSAGE_STATUSES).nullable().optional(),
         /** Filter to bounced messages (bounced_at set). Distinct from failed. */
         bounced: z.boolean().optional(),
+        held: z.boolean().optional(),
         /** Filter to unsubscribed recipients. */
         unsubscribed: z.boolean().optional(),
         search: z.string().trim().max(120).optional(),
@@ -80,7 +86,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     if (data.status) query = query.eq("status", data.status);
     // Bounces are their own outcome: a bounced message never counts as failed,
     // and failed never includes bounced rows.
-    if (data.status === "failed") query = query.is("bounced_at", null);
+    if (data.status === "failed") query = query.is("bounced_at", null).is("delivered_at", null).lt("attempts", 999).or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
+    if (data.held) query = query.is("bounced_at", null).is("delivered_at", null).or("attempts.gte.999,last_error.ilike.%send_outcome_unknown%");
     // A recipient who bounced or unsubscribed mid-sequence has their remaining
     // mail cancelled with the reason attached — include those rows here too.
     if (data.bounced) {
@@ -91,55 +98,16 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     }
     if (data.search) query = query.ilike("to_email", `%${data.search}%`);
 
-    // Counts are exact server-side COUNTs. A plain select() is capped at 1,000
-    // rows by PostgREST, which silently under-reported large queues (a 1,259
-    // recipient campaign showed a total of exactly 1,000).
-    const countFor = async (filter?: {
-      status?: MessageStatus;
-      accountId?: string;
-      bounced?: "only" | "exclude";
-    }) => {
-      let q = context.supabase
-        .from("campaign_messages")
-        .select("id", { count: "exact", head: true })
-        .eq("campaign_id", data.campaignId);
-      if (filter?.status) q = q.eq("status", filter.status);
-      if (filter?.accountId) q = q.eq("sending_account_id", filter.accountId);
-      if (filter?.bounced === "only") q = q.not("bounced_at", "is", null);
-      if (filter?.bounced === "exclude") q = q.is("bounced_at", null);
-      const { count, error } = await q;
-      if (error) throw new Error(error.message);
-      return Number(count ?? 0);
-    };
-
-    // Bounced and unsubscribed are counted per PERSON through the shared rule in
-    // `@/lib/cancellation-reason`, so a bounce that stopped three follow-ups is
-    // one bounce and a recipient cancelled because of a bounce/unsubscribe is
-    // never hidden inside the Cancelled tile.
-    const { OUTCOME_COLUMNS, OUTCOME_OR_FILTER, countOutcomeRecipients } = await import(
-      "@/lib/cancellation-reason"
-    );
-    const outcomeRows = context.supabase
-      .from("campaign_messages")
-      .select(OUTCOME_COLUMNS)
-      .eq("campaign_id", data.campaignId)
-      .or(OUTCOME_OR_FILTER)
-      .limit(5000);
-
-    const [messagesRes, statusCounts, outcomeRes, total] = await Promise.all([
+    // Paged distinct-ID inventory uses the same classifier as all reporting.
+    const [messagesRes, inventory] = await Promise.all([
       query,
-      Promise.all(
-        MESSAGE_STATUSES.map((status) =>
-          // Bounced messages keep status "failed" historically; count them only
-          // in the bounced bucket so failed never mixes the two outcomes.
-          status === "failed" ? countFor({ status, bounced: "exclude" }) : countFor({ status }),
-        ),
-      ),
-      outcomeRows,
-      countFor(),
+      fetchAllRows<OutcomeFacts & { sending_account_id?: string | null }>(() => context.supabase
+        .from("campaign_messages")
+        .select("id,status,delivery_status,sent_at,delivered_at,bounced_at,failed_at,last_error,attempts,updated_at,sending_account_id")
+        .eq("campaign_id", data.campaignId).order("id")),
     ]);
-    if (outcomeRes.error) throw new Error(outcomeRes.error.message);
-    const outcomes = countOutcomeRecipients((outcomeRes.data ?? []) as never[]);
+    const total = inventory.length;
+
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
     // Strip vendor identity and raw provider errors before the queue reaches
@@ -149,6 +117,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     messagesRes.data = (messagesRes.data ?? []).map((row) => ({
       ...row,
       // Readable category/code from the raw provider reply (no vendor identity).
+      outcome: messageOutcome(row as unknown as OutcomeFacts),
       failure: describeSendFailure((row as { last_error?: string | null }).last_error),
       provider: null,
       // The bounce reason is shown to the customer, with vendor identity,
@@ -162,24 +131,21 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         : null,
     })) as never;
 
-    // Held for review: interrupted/timed-out sends whose outcome is unknown.
-    const { count: unknownCount } = await context.supabase
-      .from("campaign_messages")
-      .select("id", { count: "exact", head: true })
-      .eq("campaign_id", data.campaignId)
-      .eq("status", "failed")
-      .is("bounced_at", null)
-      .or("attempts.gte.999,last_error.ilike.send_outcome_unknown%");
-
+    const { countOutcomeRecipients, OUTCOME_COLUMNS, OUTCOME_OR_FILTER } = await import("@/lib/cancellation-reason");
+    const recipientOutcomes = countOutcomeRecipients(await fetchAllRows(() => context.supabase.from("campaign_messages").select(OUTCOME_COLUMNS).eq("campaign_id", data.campaignId).or(OUTCOME_OR_FILTER).order("id")));
+    const current = countMessageOutcomes(inventory);
     const counts = {
-      unknown: Number(unknownCount ?? 0),
-      ...(Object.fromEntries(
-        MESSAGE_STATUSES.map((s, i) => [s, statusCounts[i] ?? 0]),
-      ) as Record<MessageStatus, number>),
-      bounced: outcomes.bounced,
-      unsubscribed: outcomes.unsubscribed,
+      pending: inventory.filter(m => m.status === "pending" && messageOutcome(m) === "queued").length,
+      scheduled: inventory.filter(m => m.status !== "pending" && messageOutcome(m) === "queued").length,
+      processing: current.sending,
+      sent: current.accepted,
+      delivered: current.delivered,
+      failed: current.failed,
+      cancelled: current.cancelled,
+      bounced: current.bounced,
+      unknown: current.held,
+      unsubscribed: recipientOutcomes.unsubscribed,
     };
-
     // Send log: per-mailbox rotation breakdown, also from exact counts. The
     // candidate mailboxes come from the campaign's own rotation list.
     const { data: campaignRow, error: cErr } = await context.supabase
@@ -200,31 +166,12 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       accounts = (accRows ?? []) as unknown as MailboxInfo[];
     }
 
-    const byMailbox = (
-      await Promise.all(
-        accountIds.map(async (id) => {
-          const [mailboxTotal, sent, failed, bounced] = await Promise.all([
-            countFor({ accountId: id }),
-            countFor({ accountId: id, status: "sent" }),
-            // Failed excludes bounces; bounces are reported separately.
-            countFor({ accountId: id, status: "failed", bounced: "exclude" }),
-            countFor({ accountId: id, bounced: "only" }),
-          ]);
-          const account = accounts.find((a) => a.id === id) ?? null;
-          return {
-            accountId: id,
-            label: account?.label ?? "Unknown mailbox",
-            fromEmail: account?.from_email ?? "",
-            // Customers never see the underlying infrastructure vendor.
-            provider: null,
-            total: mailboxTotal,
-            sent,
-            failed,
-            bounced,
-          };
-        }),
-      )
-    ).filter((m) => m.total > 0);
+    const byMailbox = accountIds.map(id => {
+      const outcomes = countMessageOutcomes(inventory.filter(m => m.sending_account_id === id));
+      const account = accounts.find(a => a.id === id);
+      return { accountId: id, label: account?.label ?? "Unknown mailbox", fromEmail: account?.from_email ?? "", provider: null,
+        total: outcomes.total, sent: outcomes.providerAccepted, failed: outcomes.failed, bounced: outcomes.bounced, held: outcomes.held, delivered: outcomes.delivered };
+    }).filter(m => m.total > 0);
     byMailbox.sort((a, b) => b.total - a.total);
 
     // Reply tracking: which queued messages have earned a response.

@@ -5,28 +5,19 @@ type Call = { patch: Record<string, unknown>; id: string };
 
 function client(failMissingColumn: boolean) {
   const calls: Call[] = [];
-  const supabase = {
-    from() {
-      return {
-        update(patch: Record<string, unknown>) {
-          return {
-            async eq(_col: string, id: string) {
-              calls.push({ patch, id });
-              if (failMissingColumn && "message_id" in patch) {
-                return {
-                  error: {
-                    code: "42703",
-                    message: `column campaign_messages.message_id does not exist`,
-                  },
-                };
-              }
-              return { error: null };
-            },
-          };
-        },
-      };
-    },
-  } as never;
+  const supabase = { from() { return { update(patch: Record<string, unknown>) {
+    let id = "";
+    const chain: any = {
+      eq: (col: string, value: string) => { if (col === "id") id = value; return chain; },
+      is: () => chain,
+      select: async () => {
+        calls.push({ patch, id });
+        if (failMissingColumn && "message_id" in patch) return { data: null, error: { code: "42703", message: "column campaign_messages.message_id does not exist" } };
+        return { data: [{ id }], error: null };
+      },
+    };
+    return chain;
+  } }; } } as never;
   return { supabase, calls };
 }
 

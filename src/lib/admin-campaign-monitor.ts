@@ -28,6 +28,7 @@ export type MessageFacts = {
   status: string | null;
   sent_at?: string | null;
   bounced_at?: string | null;
+  delivered_at?: string | null;
 };
 
 export type MessageClass = "sent" | "sent_bounced" | "bounced_rejected" | "failed" | "unknown" | "other";
@@ -36,9 +37,12 @@ export function classifyMessage(
   m: MessageFacts,
   opts: { unknown?: boolean; bounceEvent?: boolean } = {},
 ): MessageClass {
-  if (opts.unknown) return "unknown";
   const bounced = Boolean(m.bounced_at) || Boolean(opts.bounceEvent);
-  if (m.status === "sent") return bounced ? "sent_bounced" : "sent";
+  if (bounced) return (m.sent_at || m.status === "sent") ? "sent_bounced" : "bounced_rejected";
+  if (m.delivered_at) return "sent";
+  if (opts.unknown) return "unknown";
+  if (m.sent_at && m.status !== "failed") return "sent";
+  if (m.status === "sent") return "sent";
   if (bounced) return "bounced_rejected";
   if (m.status === "failed") return "failed";
   return "other";

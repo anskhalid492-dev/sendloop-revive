@@ -57,15 +57,15 @@ describe("analytics overview actual units", () => {
       { id: "test-analytics-b", campaign_id: "throwaway-analytics-campaign-b", lead_id: "throwaway-analytics-contact", step_order: 1, sent_at: at },
     ];
     const summary = summarizeEngagement(collapseAnalyticsUnits(messages), from, to);
-    expect(summary.sent).toBe(2);
+    expect(summary.sent).toBe(3);
     expect(summary.contacted).toBe(1);
   });
-  it("never counts a recovered retry as an additional failed send", () => {
+  it("preserves a separate failed message alongside a later send as an additional failed send", () => {
     const collapsed = collapseAnalyticsUnits([
       { id: "test-failed-attempt", recipient_id: "throwaway-analytics-contact", status: "failed", failed_at: at, updated_at: at },
       { id: "test-recovered-attempt", recipient_id: "throwaway-analytics-contact", status: "sent", sent_at: at },
     ]);
-    expect(summarizeEngagement(collapsed, from, to)).toMatchObject({ sent: 1, failed: 0 });
+    expect(summarizeEngagement(collapsed, from, to)).toMatchObject({ sent: 1, failed: 1 });
   });
   it("does not move historical failures into the reporting range using updated_at", () => {
     const collapsed = collapseAnalyticsUnits([
@@ -90,8 +90,8 @@ describe("analytics overview actual units", () => {
       { id: "test-dated-current", campaign_id: "throwaway-campaign-b", lead_id: "throwaway-other", status: "failed", failed_at: at },
       { id: "test-dated-old", campaign_id: "throwaway-campaign-b", status: "failed", failed_at: "2026-09-01T00:00:00Z", updated_at: at },
     ]), from, to);
-    expect(summary).toMatchObject({ failed: 1, undatedFailed: 2, failureHistoryIncomplete: true });
-    expect(failedSendCount({ failed: summary.failed ?? 0, undatedFailed: summary.undatedFailed })).toBe(3);
+    expect(summary).toMatchObject({ failed: 1, undatedFailed: 3, failureHistoryIncomplete: true });
+    expect(failedSendCount({ failed: summary.failed ?? 0, undatedFailed: summary.undatedFailed })).toBe(4);
   });
   it("excludes recovered sends and bounces from undated failures", () => {
     const summary = summarizeEngagement(collapseAnalyticsUnits([
@@ -101,7 +101,7 @@ describe("analytics overview actual units", () => {
       { id: "test-pending", status: "scheduled" },
       { id: "test-cancelled", status: "cancelled" },
     ]), from, to);
-    expect(summary).toMatchObject({ failed: 0, undatedFailed: 0, failureHistoryIncomplete: false });
+    expect(summary).toMatchObject({ failed: 0, undatedFailed: 1, failureHistoryIncomplete: true });
     expect(failedSendCount({ failed: 0 })).toBe(0);
   });
   it("preserves the existing open-rate denominator rather than using contacted or failures", () => {

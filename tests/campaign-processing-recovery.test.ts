@@ -3,46 +3,8 @@ import { completeAcceptedProcessingMessages } from "@/lib/dispatch.server";
 
 type Row = Record<string, unknown>;
 
-/** Minimal PostgREST-shaped stub: enough for the recovery query chain. */
-function client(tables: Record<string, Row[]>, updates: Row[]) {
-  const make = (table: string) => {
-    let rows = [...(tables[table] ?? [])];
-    const api: any = {
-      select: () => api,
-      eq: (col: string, value: unknown) => {
-        rows = rows.filter((r) => r[col] === value);
-        return api;
-      },
-      is: (col: string, value: unknown) => {
-        rows = rows.filter((r) => (r[col] ?? null) === value);
-        return api;
-      },
-      in: (col: string, values: unknown[]) => {
-        rows = rows.filter((r) => values.includes(r[col]));
-        return api;
-      },
-      lte: () => api,
-      limit: () => api,
-      update: (patch: Row) => {
-        const chain: any = {
-          eq: (col: string, value: unknown) => {
-            rows = rows.filter((r) => r[col] === value);
-            chain.then = undefined;
-            if (col === "status") {
-              for (const r of rows) updates.push({ id: r["id"], ...patch });
-            }
-            return chain;
-          },
-          then: (resolve: (v: unknown) => void) => resolve({ data: null, error: null }),
-        };
-        return chain;
-      },
-      then: (resolve: (v: unknown) => void) => resolve({ data: rows, error: null }),
-    };
-    return api;
-  };
-  return { from: (table: string) => make(table) } as never;
-}
+import { messageDb } from "./helpers/message-db";
+const client = messageDb;
 
 const old = "2026-08-25T10:00:00.000Z";
 const now = new Date("2026-08-27T12:00:00.000Z");
