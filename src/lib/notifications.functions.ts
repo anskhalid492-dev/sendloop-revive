@@ -33,7 +33,7 @@ export const listNotifications = createServerFn({ method: "GET" })
       try {
         const { resolveReplySources } = await import("@/lib/reply-source.server");
         const map = await resolveReplySources(context.supabase, convIds);
-        for (const n of items) if (n.entity_id && map.has(n.entity_id)) n.reply = map.get(n.entity_id);
+        for (const n of items) if (n.entity_id && map.has(n.entity_id)) n.reply = map.get(n.entity_id) ?? null;
       } catch (e) {
         console.warn("[notifications] source resolve failed:", e instanceof Error ? e.message : e);
       }

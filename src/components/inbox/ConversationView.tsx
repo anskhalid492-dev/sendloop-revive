@@ -77,6 +77,7 @@ import { AiReplyButton } from "@/components/inbox/AiReplyButton";
 import { composerHtmlToText, sanitizeComposerHtml, textToComposerHtml } from "@/lib/rich-text";
 import { sanitizeInboundHtml } from "@/lib/inbound-html";
 import { cn } from "@/lib/utils";
+import { REPLY_SOURCE_LABELS, REPLY_SOURCE_STYLES } from "@/lib/reply-source";
 
 function snoozeOptions() {
   const now = new Date();

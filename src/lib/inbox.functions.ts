@@ -385,7 +385,7 @@ export const getConversation = createServerFn({ method: "GET" })
     }
 
     let replySource: import("@/lib/reply-source").ReplySource | null = null;
-    if (conversation.has_inbound) {
+    {
       try {
         const { resolveReplySources } = await import("@/lib/reply-source.server");
         replySource = (await resolveReplySources(context.supabase, [data.id])).get(data.id)?.source ?? null;
