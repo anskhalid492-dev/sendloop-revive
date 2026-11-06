@@ -60,8 +60,8 @@ Owner approval/manual migration is still required before production can have ful
 
 - Isolated scenario verifies 694 confirmed delivered + 11 bounced =705 accepted IDs, **plus** 116 separate held IDs; zero definitive failures among those groups.
 - Distinct-ID repeat reads, held-with-legacy-failure timestamp, acceptance without receipt, bounce precedence, reporting consistency, before/after-provider interruption, lost-CAS bounce, repeated event timestamps and history immutability are covered.
-- Full isolated suite passed 2,170 checks before final follow-up refinements; final result is recorded in the completion message.
-- Automatic preview compilation was clean at 13:02:20 UTC; final state must be rechecked after all changes.
+- Full isolated suite passed **2,171 checks across 228 test files**; local database history tests are isolated and never contact production.
+- Automatic preview compilation is checked after final edits; no manual production build, deployment or publication was run.
 - Authenticated campaign/dashboard/CSV visual readback and real SMTP/provider-event end-to-end verification remain unavailable without a named throwaway test-account session and provider evidence. No live customer browser session was used.
 - The 10 stored bounce rows are historical labels, not a guarantee that every diagnostic is recipient-side. In particular `6c62569a-aaba-4fd7-822e-891554503620` contains `550 5.7.1_ETR` (sender/policy classification now stays Failed); one generic DSN subject lacks its detailed diagnostic. Neither historical row was silently rewritten.
 - The older SQL rollup/RPC definitions and external integrations may still apply old semantics until owner-reviewed changes are applied; preview customer readers bypass their outcome fields with canonical computation. No database RPC replacement has been executed.

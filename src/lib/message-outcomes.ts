@@ -46,7 +46,7 @@ export function mergeMessageSnapshots<T extends OutcomeFacts>(rows: readonly T[]
     const merged = { ...older, ...newer };
     for (const field of ["sent_at", "delivered_at", "bounced_at"] as const) {
       const a = previous[field]; const b = row[field];
-      if (a || b) merged[field] = !a ? b : !b ? a : a < b ? a : b;
+      if (a || b) merged[field] = !a ? (b ?? null) : !b ? a : a < b ? a : b;
     }
     unique.set(row.id, merged);
   }
