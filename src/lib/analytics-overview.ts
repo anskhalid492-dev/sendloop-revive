@@ -25,7 +25,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const people = (predicate: (u: Unit) => boolean) => new Set(units.filter(predicate).map(u => u.leadKey)).size;
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
-  const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at).length;
+  const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at ).length;
   // Legacy failures have a known outcome but no trustworthy occurrence date.
   // Keep them visible separately; never assign them to a period via updated_at.
   const undatedFailed = units.filter(u => !u.held && !u.sentAt && !u.signals.bounced_at && !u.signals.delivered_at && u.status === "failed" && !u.signals.failed_at).length;
@@ -43,7 +43,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
     opens: people(u => inRange(u.signals.opened_at)),
     clicks: people(u => inRange(u.signals.clicked_at)),
     replies: people(u => inRange(u.signals.replied_at)),
-    bounced: accounts.reduce((n, a) => n + a.bounced, 0),
+    bounced: units.filter(u => inRange(u.signals.bounced_at)).length,
     unsubscribed: accounts.reduce((n, a) => n + a.unsubscribed, 0),
   };
 }

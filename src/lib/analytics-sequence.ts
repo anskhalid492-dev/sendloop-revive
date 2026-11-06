@@ -4,8 +4,6 @@
  * sequence and variant tables can never disagree with the headline totals.
  */
 import {
-  bouncedLeadKeys,
-  unitBounceAt,
   unitUnsubscribeAt,
   type Unit,
 } from "@/lib/campaign-stats";
@@ -78,13 +76,11 @@ function accumulate(
   target: SequenceTotals,
   unit: Unit,
   inRange: (iso: string | null) => boolean,
-  bouncedPeople: Set<string>,
   counted: PeopleCounted,
 ) {
   // Bounce / unsubscribe use the ONE shared rule (signal or cancelled reason),
   // and a bounce applies to the whole person, not just the row carrying it.
-  const bouncedAt = unitBounceAt(unit);
-  const personBounced = bouncedPeople.has(unit.leadKey);
+  const bouncedAt = unit.signals.bounced_at;
   if (inRange(unit.sentAt)) {
     target.sent += 1;
     // People-based rate base: one person emailed counts once, however many
@@ -94,9 +90,7 @@ function accumulate(
       target.contacted += 1;
     }
   }
-  // Relay/SMTP sends never get a provider delivery confirmation, so a send that
-  // did not bounce or fail counts as delivered. Same rule as `deliveredCount`
-  // in engagement-rates.ts.
+  // Delivery requires this message's actual receipt.
   if (
     inRange(unit.signals.delivered_at) &&
     !unit.signals.bounced_at
@@ -104,13 +98,11 @@ function accumulate(
     target.delivered += 1;
   }
   if (inRange(unit.signals.opened_at)) target.opens += 1;
-  // (delivered is re-derived as sent - bounced after accumulation, see below)
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;
   // One bounced person = one bounce, exactly like the campaign totals, which
   // count bounced/unsubscribed leads as sets of people.
-  if (inRange(bouncedAt) && !counted.bounced.has(unit.leadKey)) {
-    counted.bounced.add(unit.leadKey);
+  if (inRange(bouncedAt)) {
     target.bounced += 1;
   }
   if (!unit.held && !unit.signals.delivered_at && !unit.signals.bounced_at && inRange(unit.signals.failed_at)) target.failed += 1;
@@ -137,7 +129,6 @@ export function computeSequenceStats(
   const stepCounted = new Map<number, PeopleCounted>();
   const variantCounted = new Map<string, PeopleCounted>();
   const all = Array.from(units);
-  const bouncedPeople = bouncedLeadKeys(all);
 
   for (const unit of all) {
     const step = Math.max(1, unit.step || 1);
@@ -147,7 +138,8 @@ export function computeSequenceStats(
       steps.set(step, stepRow);
       stepCounted.set(step, newPeopleCounted());
     }
-    accumulate(stepRow, unit, inRange, bouncedPeople, stepCounted.get(step)!);
+    const stepPeople = stepCounted.get(step);
+    if (stepPeople) accumulate(stepRow, unit, inRange, stepPeople);
 
     const variantId = unit.variantId ?? null;
     const variantKey = `${step}|${variantId ?? "base"}`;
@@ -162,7 +154,8 @@ export function computeSequenceStats(
       variants.set(variantKey, variantRow);
       variantCounted.set(variantKey, newPeopleCounted());
     }
-    accumulate(variantRow, unit, inRange, bouncedPeople, variantCounted.get(variantKey)!);
+    const variantPeople = variantCounted.get(variantKey);
+    if (variantPeople) accumulate(variantRow, unit, inRange, variantPeople);
   }
 
   for (const variantRow of variants.values()) {
@@ -181,9 +174,8 @@ export function computeUnitTotals(units: Iterable<Unit>, opts: Window): Sequence
   const inRange = makeInRange(opts);
   const totals = emptySequenceTotals();
   const all = Array.from(units);
-  const bouncedPeople = bouncedLeadKeys(all);
   const counted = newPeopleCounted();
-  for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople, counted);
+  for (const unit of all) accumulate(totals, unit, inRange, counted);
 
   return totals;
 }

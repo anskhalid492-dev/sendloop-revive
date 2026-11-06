@@ -84,6 +84,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       .order("scheduled_at", { ascending: true, nullsFirst: false })
       .limit(data.limit);
     if (data.status) query = query.eq("status", data.status);
+    if (data.status === "sent") query = query.is("bounced_at", null).is("delivered_at", null).is("failed_at", null);
     // Bounces are their own outcome: a bounced message never counts as failed,
     // and failed never includes bounced rows.
     if (data.status === "failed") query = query.is("bounced_at", null).is("delivered_at", null).lt("attempts", 999).or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
@@ -91,7 +92,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // A recipient who bounced or unsubscribed mid-sequence has their remaining
     // mail cancelled with the reason attached — include those rows here too.
     if (data.bounced) {
-      query = query.or("bounced_at.not.is.null,cancelled_reason.eq.recipient_bounced");
+      query = query.or("bounced_at.not.is.null,delivery_status.eq.bounced");
     }
     if (data.unsubscribed) {
       query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
@@ -250,11 +251,12 @@ export const updateQueueMessages = createServerFn({ method: "POST" })
       if (!targetIds.length) return { ok: true, affected: 0 };
     }
 
-    const { error } = await context.supabase
-      .from("campaign_messages")
-      .update(patch)
-      .in("id", targetIds)
+    let write = context.supabase.from("campaign_messages").update(patch).in("id", targetIds)
       .in("status", data.action === "cancel" ? ["pending", "scheduled", "failed"] : ["failed", "cancelled"]);
+    if (data.action === "requeue") write = write.is("sent_at", null).is("provider_message_id", null)
+      .is("delivered_at", null).is("bounced_at", null).lt("attempts", 999)
+      .or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
+    const { data: changed, error } = await write.select("id");
     if (error) throw new Error(error.message);
-    return { ok: true, affected: targetIds.length };
+    return { ok: true, affected: changed?.length ?? 0 };
   });
