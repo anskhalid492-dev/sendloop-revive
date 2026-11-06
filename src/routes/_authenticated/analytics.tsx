@@ -192,7 +192,8 @@ function AnalyticsPage() {
     const header = [
       "Campaign",
       "Status",
-      "Sent",
+      "Sent (accepted by mail server)",
+      "Accepted (no receipt or bounce yet)",
       "Confirmed delivered",
       "Opens",
       "Clicks",
@@ -208,6 +209,7 @@ function AnalyticsPage() {
       r.name,
       r.status,
       r.sent,
+      r.accepted ?? 0,
       r.delivered,
       r.opens,
       r.clicks,
