@@ -21,6 +21,7 @@ export type SequenceTotals = {
   positiveReplies: number;
   bounced: number;
   failed: number;
+  held: number;
   unsubscribed: number;
 };
 
@@ -46,6 +47,7 @@ export function emptySequenceTotals(): SequenceTotals {
     positiveReplies: 0,
     bounced: 0,
     failed: 0,
+    held: 0,
     unsubscribed: 0,
   };
 }
@@ -96,9 +98,8 @@ function accumulate(
   // did not bounce or fail counts as delivered. Same rule as `deliveredCount`
   // in engagement-rates.ts.
   if (
-    (inRange(unit.signals.delivered_at) || inRange(unit.sentAt)) &&
-    !personBounced &&
-    !unit.signals.failed_at
+    inRange(unit.signals.delivered_at) &&
+    !unit.signals.bounced_at
   ) {
     target.delivered += 1;
   }
@@ -112,7 +113,8 @@ function accumulate(
     counted.bounced.add(unit.leadKey);
     target.bounced += 1;
   }
-  if (!personBounced && inRange(unit.signals.failed_at)) target.failed += 1;
+  if (!unit.held && !unit.signals.delivered_at && !unit.signals.bounced_at && inRange(unit.signals.failed_at)) target.failed += 1;
+  if (unit.held && !unit.signals.bounced_at && !unit.signals.delivered_at) target.held += 1;
   if (inRange(unitUnsubscribeAt(unit)) && !counted.unsubscribed.has(unit.leadKey)) {
     counted.unsubscribed.add(unit.leadKey);
     target.unsubscribed += 1;
@@ -168,16 +170,10 @@ export function computeSequenceStats(
   }
   for (const stepRow of steps.values()) {
     stepRow.variants.sort((a, b) => b.sent - a.sent || a.label.localeCompare(b.label));
-    for (const v of stepRow.variants) finaliseDelivered(v);
-    finaliseDelivered(stepRow);
+
   }
 
   return Array.from(steps.values()).sort((a, b) => a.step - b.step);
-}
-
-/** delivered + bounced can never exceed the accepted sends. */
-function finaliseDelivered(totals: SequenceTotals) {
-  totals.delivered = Math.max(0, totals.sent - totals.bounced);
 }
 
 /** Totals for an arbitrary set of units (used by filtered breakdowns). */
@@ -188,6 +184,6 @@ export function computeUnitTotals(units: Iterable<Unit>, opts: Window): Sequence
   const bouncedPeople = bouncedLeadKeys(all);
   const counted = newPeopleCounted();
   for (const unit of all) accumulate(totals, unit, inRange, bouncedPeople, counted);
-  finaliseDelivered(totals);
+
   return totals;
 }

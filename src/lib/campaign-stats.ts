@@ -1,3 +1,5 @@
+import { countMessageOutcomes, type MessageOutcomeCounts } from "@/lib/message-outcomes";
+import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
 /**
  * The single source of truth for campaign statistics.
  *
@@ -15,8 +17,7 @@
  * Definitions
  * -----------
  * - sent:        the email was accepted by the sending provider (`sent_at`)
- * - delivered:   accepted for sending and not confirmed as bounced; explicit
- *                provider confirmations are retained when available
+ * - delivered:   explicit per-message delivery evidence only; acceptance is not delivery
  * - opened / clicked / replied / unsubscribed / complained: real provider signals
  * - bounced / failed: mutually exclusive terminal outcomes (a bounce is not a failure)
  * - scheduled:   pending work — a planned email that has not been sent or cancelled
@@ -59,6 +60,9 @@ export type CampaignStats = {
   unsubscribed: number;
   complained: number;
   failed: number;
+  held: number;
+  attempted: number;
+  currentOutcomes?: MessageOutcomeCounts;
   remaining: number;
   /** Pending emails (all steps), de-duplicated per recipient+step. */
   scheduled: number;
@@ -91,6 +95,8 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     unsubscribed: n(row["unsubscribed"]),
     complained: n(row["complained"]),
     failed: n(row["failed"]),
+    held: n(row["held"]),
+    attempted: n(row["attempted"]),
     remaining: n(row["remaining"]),
     scheduled: n(row["scheduled"] ?? row["queued"]),
     cancelled: n(row["cancelled"]),
@@ -123,6 +129,8 @@ export const EMPTY_CAMPAIGN_STATS = (
   unsubscribed: 0,
   complained: 0,
   failed: 0,
+  held: 0,
+  attempted: 0,
   remaining: 0,
   scheduled: 0,
   cancelled: 0,
@@ -163,6 +171,8 @@ export type CampaignMessageRow = {
   failed_at?: string | null;
   delayed_at?: string | null;
   updated_at?: string | null;
+  last_error?: string | null;
+  attempts?: number | null;
   /** Why this message was cancelled (see `@/lib/cancellation-reason`). */
   cancelled_reason?: string | null;
 };
@@ -187,6 +197,7 @@ export type Unit = {
   step: number;
   /** Sent, then rejected by the provider without a bounce. */
   rejectedAfterSend?: boolean;
+  held?: boolean;
   status: string;
   /** Mailbox that sent (or is due to send) this unit. */
   accountId: string | null;
@@ -297,6 +308,7 @@ export function collapseMessageUnits(
       leadKey,
       step,
       status,
+      held: false,
       accountId: m.sending_account_id ? String(m.sending_account_id) : null,
       variantId: m.variant_id ? String(m.variant_id) : null,
       campaignId: m.campaign_id ? String(m.campaign_id) : null,
@@ -335,10 +347,12 @@ export function collapseMessageUnits(
     if (!m.sent_at && PENDING_STATUSES.has(status)) unit.pending = true;
     if (!m.sent_at && status === "processing") unit.processing = true;
     if (m.delivery_status === "delayed") unit.deliveryStatus = "delayed";
-    if (status === "failed" || m.delivery_status === "failed") {
+    if (isHeldOutcomeUnknown(m)) unit.held = true;
+    if (!isHeldOutcomeUnknown(m) && (status === "failed" || m.delivery_status === "failed")) {
       if (unit.status !== "sent") unit.status = "failed";
     }
     if (m.sent_at) {
+      unit.held = false;
       // Accepted for sending, then rejected by the provider (no bounce). A later
       // successful row for the same unit clears it, so recovered retries never count.
       if (status === "failed") unit.rejectedAfterSend = unit.rejectedAfterSend !== false;
@@ -436,7 +450,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     const s = unit.signals;
     const step = stepOf(unit.step);
     const bounced = Boolean(s.bounced_at) || bouncedLeads.has(unit.leadKey);
-    const failed = Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt);
+    const failed = !unit.held && !s.delivered_at && (Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt));
 
     const sentInRange = inRange(unit.sentAt);
     if (sentInRange) {
@@ -452,7 +466,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
         stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
       }
     }
-    if (inRange(s.delivered_at) && !bounced && !s.failed_at) {
+    if (inRange(s.delivered_at) && !bounced) {
       stats.delivered += 1;
       step.delivered += 1;
     }
@@ -465,7 +479,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       repliedLeads.add(unit.leadKey);
       step.replied += 1;
     }
-    if (!bounced && (inRange(s.failed_at) || (failed && inRange(unit.updatedAt)))) {
+    if (!unit.held && !bounced && !s.delivered_at && failed && (inRange(s.failed_at) || (noRange && !s.failed_at))) {
       stats.failed += 1;
     }
     if (unit.cancelled) stats.cancelled += 1;
@@ -483,17 +497,20 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.bounced = bouncedLeads.size;
   stats.unsubscribed = unsubscribedLeads.size;
   stats.complained = complainedLeads.size;
-  // Customer SMTP relays do not emit delivery receipts. Use the shared
-  // accepted-minus-confirmed-bounces definition while retaining any larger
-  // provider-confirmed count.
-  // Bounces are counted per PERSON and often land on a cancelled follow-up that
-  // has no `sent_at` of its own, so subtracting bounced SEND ROWS left delivered
-  // equal to sent while the bounced tile showed 3. Always subtract the bounced
-  // people, so delivered + bounced can never exceed sent.
-  void sentBounced;
-  stats.delivered = Math.max(0, stats.sent - stats.bounced - sentRejected);
-  for (const [stepNumber, step] of steps) {
-    step.delivered = Math.max(step.delivered, Math.max(0, step.sent - (stepBounces.get(stepNumber) ?? 0)));
+  // Current outcomes are distinct message IDs; engagement remains people-based.
+  const outcomeRows = input.messages.map(m => ({ ...m, ...input.events?.get(m.id) }));
+  const currentOutcomes = countMessageOutcomes(outcomeRows);
+  stats.currentOutcomes = currentOutcomes;
+  stats.held = currentOutcomes.held;
+  stats.attempted = currentOutcomes.attempted;
+  if (noRange) {
+    stats.sent = currentOutcomes.providerAccepted;
+    stats.delivered = currentOutcomes.delivered;
+    stats.bounced = currentOutcomes.bounced;
+    stats.failed = currentOutcomes.failed;
+    stats.scheduled = currentOutcomes.queued;
+    stats.sending = currentOutcomes.sending;
+    stats.cancelled = currentOutcomes.cancelled;
   }
   stats.contacted = contacted.size;
   stats.queued = stats.scheduled;
@@ -548,7 +565,7 @@ export function computeTimeseries(
     const bouncedAt = unitBounceAt(u);
     at(u.sentAt, "sent");
     if (!bouncedPeople.has(u.leadKey) && !u.signals.failed_at) {
-      at(u.signals.delivered_at ?? u.sentAt, "delivered");
+      at(u.signals.delivered_at, "delivered");
     }
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
@@ -564,13 +581,6 @@ export function computeTimeseries(
     }
   }
 
-  // Delivered is always accepted-minus-bounced for the same bucket: a bounce can
-  // be recorded on a row with no `sent_at`, so filtering send rows alone left the
-  // chart showing delivered == sent next to a non-zero bounce count.
-  for (const point of points.values()) {
-    point.delivered = Math.max(0, point.sent - point.bounced);
-  }
-
   return Array.from(points.values()).sort((a, b) => a.bucket.localeCompare(b.bucket));
 }
 
@@ -583,6 +593,7 @@ export type AccountTotals = {
   replies: number;
   bounced: number;
   failed: number;
+  held?: number;
   unsubscribed: number;
 };
 
@@ -647,7 +658,7 @@ export function computeAccountTotals(
         sentBounces.set(u.accountId, (sentBounces.get(u.accountId) ?? 0) + 1);
       }
     }
-    if (inRange(u.signals.delivered_at) && !personBounced && !u.signals.failed_at) {
+    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
@@ -656,7 +667,8 @@ export function computeAccountTotals(
     if (inRange(bouncedAt) && addPersonOnce(bouncedCounted, u.accountId, u.leadKey)) {
       row.bounced += 1;
     }
-    if (!personBounced && inRange(u.signals.failed_at)) row.failed += 1;
+    if (!u.held && !u.signals.bounced_at && !u.signals.delivered_at && inRange(u.signals.failed_at)) row.failed += 1;
+    if (u.held) row.held = (row.held ?? 0) + 1;
     const unsubAt = unitUnsubscribeAt(u);
     if (inRange(unsubAt) && addPersonOnce(unsubCounted, u.accountId, u.leadKey)) {
       row.unsubscribed += 1;
@@ -667,7 +679,7 @@ export function computeAccountTotals(
     // send rows (a bounce often sits on a cancelled row with no `sent_at`).
     void confirmedDelivered;
     void sentBounces;
-    row.delivered = Math.max(0, row.sent - row.bounced);
+    row.delivered = confirmedDelivered.get(row.accountId) ?? 0;
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;

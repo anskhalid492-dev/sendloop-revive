@@ -30,6 +30,8 @@ export type AnalyticsSummary = {
   unsubscribed: number;
   complained: number;
   failed: number;
+  held?: number;
+  attempted?: number;
 };
 
 /** Visible failure inventory: period failures plus explicitly labelled undated history. */
@@ -73,6 +75,8 @@ export type AnalyticsCampaignRow = {
   unsubscribed: number;
   complained: number;
   failed: number;
+  held?: number;
+  attempted?: number;
 };
 
 export type AnalyticsAccountRow = {

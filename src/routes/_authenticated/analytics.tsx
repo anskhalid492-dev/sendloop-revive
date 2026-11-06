@@ -193,14 +193,16 @@ function AnalyticsPage() {
       "Campaign",
       "Status",
       "Sent",
-      "Accepted minus bounced (not confirmed delivery)",
+      "Confirmed delivered",
       "Opens",
       "Clicks",
       "Replies",
       "Positive replies",
       "Bounced",
       "Unsubscribed",
-      "Failed",
+      "Definitively failed",
+      "Held for review (current inventory)",
+      "Distinct attempted (current inventory)",
     ];
     const body = rows.map((r) => [
       r.name,
@@ -214,6 +216,8 @@ function AnalyticsPage() {
       r.bounced,
       r.unsubscribed,
       r.failed,
+      r.held ?? 0,
+      r.attempted ?? 0,
     ]);
     const csv = [header, ...body]
       .map((line) =>
@@ -241,12 +245,12 @@ function AnalyticsPage() {
         },
         {
           // Estimated delivered = sent minus confirmed bounces (same basis as the rates).
-          label: "Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
-          value: formatCount(Math.max(0, current.sent - current.bounced)),
+          label: "Confirmed Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
+          value: deliveryPresentation(current).value,
           delta: previous
             ? deltaCount(
-                Math.max(0, current.sent - current.bounced),
-                Math.max(0, previous.sent - previous.bounced),
+                current.delivered,
+                previous.delivered,
               )
             : null,
           sub: null,
@@ -285,6 +289,10 @@ function AnalyticsPage() {
           value: formatPct(unsubRate(current)),
           delta: deltaRate(unsubRate(current), previous ? unsubRate(previous) : 0, true),
           sub: `${formatCount(current.unsubscribed)} unsubscribed`,
+        },
+        {
+          label: "Held for Review", icon: CircleX, tone: "bg-warning/15 text-warning",
+          value: formatCount(current.held ?? 0), delta: null, sub: "Current unresolved messages · not failed",
         },
         {
           label: "Failed Sends", icon: CircleX, tone: "bg-destructive/10 text-destructive",
