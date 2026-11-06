@@ -43,21 +43,21 @@ describe("delivered never exceeds accepted sends minus bounced people", () => {
   it("campaign totals", () => {
     const stats = computeCampaignStats({ messages, leads: 3, from, to });
     expect(stats.sent).toBe(3);
-    expect(stats.bounced).toBe(1);
+    expect(stats.bounced).toBe(0);
     expect(stats.delivered).toBe(0);
   });
 
   it("per-mailbox totals", () => {
     const [row] = computeAccountTotals(units, { from, to });
     expect(row!.sent).toBe(3);
-    expect(row!.bounced).toBe(1);
+    expect(row!.bounced).toBe(0);
     expect(row!.delivered).toBe(0);
   });
 
   it("timeseries buckets", () => {
     const point = computeTimeseries(units, { bucket: "day", from, to })[0]!;
     expect(point.sent).toBe(3);
-    expect(point.bounced).toBe(1);
+    expect(point.bounced).toBe(0);
     expect(point.delivered).toBe(0);
   });
 

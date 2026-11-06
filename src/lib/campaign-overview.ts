@@ -5,7 +5,7 @@
  * so the table never shows synthetic statistics.
  */
 
-import { deliveredCount, openRatePercent, replyRatePercent } from "@/lib/engagement-rates";
+import { openRatePercent, replyRatePercent } from "@/lib/engagement-rates";
 
 export type CampaignOverviewAccount = {
   id: string;
@@ -143,7 +143,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
         .filter((m) => m.status === "sent" || m.sent_at)
         .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:sent`),
     ).size;
-    const reached = deliveredCount({ sent, bounced, confirmedDelivered });
+    const reached = confirmedDelivered;
 
     const replyKeys = new Set(
       input.replies
@@ -239,15 +239,7 @@ export function applyCampaignRollup(
     if (hit.contacted != null) row.contacted = n(hit.contacted);
     if (hit.sent_today != null) row.sentToday = n(hit.sent_today);
     if (hit.bounced != null) row.bounced = n(hit.bounced);
-    if (hit.reached != null || hit.delivered != null) {
-      row.reached = n(hit.reached ?? deliveredCount({
-        sent: row.sent,
-        bounced: row.bounced,
-        confirmedDelivered: n(hit.delivered),
-      }));
-    } else {
-      row.reached = deliveredCount({ sent: row.sent, bounced: row.bounced });
-    }
+    if (hit.reached != null || hit.delivered != null) row.reached = n(hit.delivered ?? hit.reached);
     if (hit.opened != null) row.opened = n(hit.opened);
     // People-based base; an older rollup without `contacted` falls back to
     // its own authoritative send count, never a stale client-side number.

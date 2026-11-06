@@ -130,7 +130,7 @@ export function MetricCards({
       value: current.sent,
       previous: previous?.sent ?? null,
       icon: Send,
-      hint: "Delivered from your managed mailboxes",
+      hint: "Accepted by your connected mailboxes",
     },
     {
       label: "Replies",

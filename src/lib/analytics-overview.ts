@@ -61,8 +61,8 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
       const at = iso ? Date.parse(iso) : NaN;
       if (at < +from || at >= +to || !Number.isFinite(at)) continue;
       const key = Math.floor(at / step) * step;
-      const identity = `${key}:${field}:${u.leadKey}`;
-      if (field !== "sent" && seen.has(identity)) continue;
+      const identity = `${key}:${field}:${u.campaignId ?? ""}:${u.leadKey}`;
+      if (!["sent", "delivered", "bounced"].includes(field) && seen.has(identity)) continue;
       seen.add(identity);
       const p = points.get(key);
       if (p) p[field as Exclude<keyof AnalyticsTimeseriesPoint, "bucket">] += 1;
