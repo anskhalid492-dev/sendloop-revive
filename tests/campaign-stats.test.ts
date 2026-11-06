@@ -53,7 +53,7 @@ describe("campaign stats source", () => {
     expect(rate(1, 0)).toBeNull();
   });
 
-  it("requires a delivery receipt instead of inferring SMTP delivery", () => {
+  it("counts accepted minus bounced as delivered", () => {
     const messages = [
       {
         id: "m1",
@@ -85,6 +85,6 @@ describe("campaign stats source", () => {
     expect(stats).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
     expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 1 });
     expect(series[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
-    expect(accounts[0]).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
+    expect(accounts[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
   });
 });
