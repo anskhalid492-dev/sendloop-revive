@@ -57,12 +57,13 @@ describe("delivery reports", () => {
     expect(normalizeReportedDeliveryKind("bounced", "550 5.1.1 No such user")).toBe("bounced");
   });
 
-  it("treats an ambiguous bare 550 as failed rather than inventing an invalid recipient", () => {
+  // Owner rule (Nov 2026): a bare 550 counts as a bounce, without suppression.
+  it("treats a bare 550 report as bounced", () => {
     const r = parseDeliveryReport({
       text: "Diagnostic-Code: smtp; 550",
       subject: "Undelivered Mail Returned to Sender",
     });
-    expect(r.kind).toBe("failed");
+    expect(r.kind).toBe("bounced");
   });
 
   it("detects a delay report with no status code at all", () => {

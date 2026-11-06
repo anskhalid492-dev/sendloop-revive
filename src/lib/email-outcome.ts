@@ -95,6 +95,9 @@ const FORCED_BOUNCE_PATTERNS: RegExp[] = [
   /this\s+message\s+could\s+not\s+be\s+delivered\.?\s*please\s+contact\s+support/i,
   /\b554\s+read\b/i,
   /\b550\s+permanent\b/i,
+  // Owner decision (Nov 2026): a bare "550" reply with no other text is a
+  // hard bounce. Anything with more text is classified by its evidence.
+  /^550\.?$/,
 ];
 
 const MS_DBEB = /recipient\s+address\s+rejected\s*:?\s*access\s+denied[\s\S]{0,80}\bAS\(201806281\)/i;

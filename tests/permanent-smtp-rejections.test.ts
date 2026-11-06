@@ -35,8 +35,12 @@ describe("permanent recipient-side SMTP rejections are bounced", () => {
 });
 
 describe("sending-side and uncertain outcomes are not bounces", () => {
-  it("bare 550 with no diagnostic stays failed (insufficient evidence)", () => {
-    expect(classifyEmailOutcome("550").reason).toBe("ambiguous_permanent");
+  it("bare 550 counts as bounced but never suppresses the address", () => {
+    const r = classifyEmailOutcome("550");
+    expect(r.outcome).toBe("bounced");
+    expect(r.recipientInvalid).toBe(false);
+    expect(outcome("550 5.7.1")).toBe("failed");
+    expect(outcome("550 Envelope blocked - User Entry -")).toBe("failed");
   });
   it("authentication failure stays failed", () => {
     expect(outcome("535 5.7.8 Authentication credentials invalid")).toBe("failed");
