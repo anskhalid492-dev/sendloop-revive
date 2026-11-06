@@ -141,34 +141,38 @@ export function NotificationBell() {
                             {formatWhen(n.reply.receivedAt ?? n.created_at)}
                           </span>
                         </div>
-                        <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">
-                          {n.reply.fromName ? `${n.reply.fromName} · ` : ""}
-                          <span className="font-normal text-muted-foreground">{n.reply.fromEmail}</span>
-                        </p>
-                        {n.reply.subject || n.message ? (
-                          <p className="text-xs font-medium [overflow-wrap:anywhere]">{n.reply.subject ?? n.message}</p>
-                        ) : null}
-                        {n.reply.preview ? (
-                          <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">{n.reply.preview}</p>
-                        ) : null}
-                        {n.reply.source === "campaign_reply" && n.reply.campaignName ? (
-                          <p className="mt-1 text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
-                            Campaign: {n.reply.campaignName}
-                          </p>
-                        ) : n.reply.source === "warmup_reply" && n.reply.mailboxEmail ? (
-                          <p className="mt-1 text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
-                            Warmup mailbox: {n.reply.mailboxEmail}
+                        <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">{n.reply.fromEmail}</p>
+                        {n.reply.preview || n.message ? (
+                          <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                            {n.reply.preview ?? n.message}
                           </p>
                         ) : null}
                       </>
                     ) : (
+                      n.type === "bounced" ? (
+                        <>
+                          <div className="flex min-w-0 items-center justify-between gap-2">
+                            <span className="shrink-0 rounded-full border border-destructive/30 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
+                              Bounced
+                            </span>
+                            <span className="shrink-0 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</span>
+                          </div>
+                          <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">
+                            {n.title.replace(/\s+bounced$/i, "")}
+                          </p>
+                          {n.message ? (
+                            <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">{n.message}</p>
+                          ) : null}
+                        </>
+                      ) : (
                       <>
                         <p className="text-sm font-medium [overflow-wrap:anywhere]">{n.title}</p>
                         {n.message ? (
                           <p className="mt-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">{n.message}</p>
                         ) : null}
                         <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</p>
-                      </>
+      </>
+                      )
                     )}
                   </button>
                   <button
