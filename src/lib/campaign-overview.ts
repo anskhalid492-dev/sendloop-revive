@@ -143,7 +143,7 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
         .filter((m) => m.status === "sent" || m.sent_at)
         .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:sent`),
     ).size;
-    const reached = confirmedDelivered;
+    const reached = Math.max(confirmedDelivered, messages.filter((m) => (m.status === "sent" || m.sent_at) && m.bounced_at == null).length);
 
     const replyKeys = new Set(
       input.replies

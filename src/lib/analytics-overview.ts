@@ -32,7 +32,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   return {
     sent,
     contacted: people(u => inRange(u.sentAt)),
-    delivered: confirmed,
+    delivered: Math.max(confirmed, sent - units.filter(u => inRange(u.sentAt) && u.signals.bounced_at).length),
     deliveryComplete: sent > 0 && units.filter(u => inRange(u.sentAt) && Boolean(u.signals.delivered_at || u.signals.bounced_at)).length === sent,
     // A mutable updated_at must not move an old failure into this window.
     // Includes sends the provider rejected after accepting them (dated by failed_at).

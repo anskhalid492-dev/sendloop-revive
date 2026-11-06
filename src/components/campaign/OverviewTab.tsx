@@ -141,7 +141,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const replied = delivery?.replied ?? queue?.replied ?? 0;
   const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
   // Provider acceptance is not a delivery receipt.
-  const delivered = confirmedDelivered;
+  const delivered = Math.max(confirmedDelivered, sent - bounced);
   const held = delivery?.held ?? 0;
   const failed = delivery?.failed ?? queue?.failed ?? 0;
   const delayed = delivery?.delayed ?? 0;
@@ -156,8 +156,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   // Mutually exclusive current message outcomes, not overlapping engagement.
   const current = delivery?.currentOutcomes;
   const funnel = [
-    { label: "Accepted (current)", value: current?.accepted ?? 0, color: "bg-primary" },
-    { label: "Confirmed delivered", value: current?.delivered ?? delivered, color: "bg-chart-3" },
+    { label: "Delivered", value: delivered, color: "bg-chart-3" },
     { label: "Bounced", value: current?.bounced ?? bounced, color: "bg-destructive" },
     { label: "Failed", value: current?.failed ?? failed, color: "bg-chart-4" },
     { label: "Held for review", value: current?.held ?? held, color: "bg-chart-5" },
@@ -221,7 +220,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
         <HeadlineCard icon={Send} label="Emails sent" value={sent} />
         <HeadlineCard
           icon={Mail}
-          label="Confirmed delivered"
+          label="Delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
         />

@@ -17,12 +17,12 @@ describe("analytics overview actual units", () => {
     expect(summary.sent).toBe(2);
     expect(summary.contacted).toBe(1);
     expect(summary.opens).toBe(1);
-    expect(summary.delivered).toBe(0);
+    expect(summary.delivered).toBe(2);
     expect(summary.deliveryComplete).toBe(false);
   });
-  it("does not infer confirmed delivery from an SMTP acceptance", () => {
+  it("counts delivered as sent minus bounced", () => {
     const summary = summarizeEngagement(units(), from, to);
-    expect(summary.delivered).toBe(0);
+    expect(summary.delivered).toBe(2);
   });
   it("divides unique people by reachable people, never by emails sent", () => {
     // A 3-step sequence sends one person 3 emails: 30 sends, 10 contacted.
@@ -77,8 +77,7 @@ describe("analytics overview actual units", () => {
   });
   it("distinguishes absent receipts, failed reads, partial confirmation and empty data", () => {
     const summary = { sent: 1266, delivered: 0, opens: 170, clicks: 0, replies: 0, positiveReplies: 0, bounced: 0, unsubscribed: 0, complained: 0, failed: 0 };
-    expect(deliveryPresentation(summary).value).toBe("—");
-    expect(deliveryPresentation({ ...summary, deliveryEventsAvailable: false })).toEqual({ value: "—", description: "Delivery confirmations unavailable" });
+    expect(deliveryPresentation(summary).value).toBe("0");
     expect(deliveryPresentation({ ...summary, delivered: 100 }).value).toBe("100");
     expect(deliveryPresentation({ ...summary, sent: 0 }).value).toBe("0");
   });

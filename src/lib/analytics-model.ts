@@ -136,7 +136,5 @@ export function formatCount(value: number): string {
 }
 
 export function deliveryPresentation(r: AnalyticsSummary): { value: string; description: string } {
-  if (r.deliveryEventsAvailable === false) return { value: "—", description: "Delivery confirmations unavailable" };
-  if (!r.delivered && r.sent && !r.deliveryComplete) return { value: "—", description: "No confirmed delivery receipts" };
-  return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} confirmed · ${r.deliveryComplete ? "complete receipts" : "partial receipts"}` };
+  return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} of sent · sent minus bounced` };
 }
