@@ -65,7 +65,10 @@ export const retryFailedCampaignMessages = createServerFn({ method: "POST" })
       const { error: updateError } = await context.supabase
         .from("campaign_messages")
         .update({ status: "pending", attempts: 0, last_error: null, scheduled_at: null })
-        .in("id", chunk);
+        .in("id", chunk)
+        .eq("status", "failed").is("sent_at", null).is("provider_message_id", null)
+        .is("bounced_at", null).is("delivered_at", null).lt("attempts", 999)
+        .or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
       if (updateError) throw new Error(updateError.message);
     }
     return { retried: ids.length };

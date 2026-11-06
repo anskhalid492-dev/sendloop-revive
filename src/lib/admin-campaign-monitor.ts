@@ -82,6 +82,7 @@ export type CampaignMetrics = SendTotals & {
   replies: number;
   positiveReplies: number;
   unsubscribes: number;
+  delivered?: number;
 };
 
 export type DerivedRates = {
@@ -99,7 +100,7 @@ export function deriveRates(m: CampaignMetrics): DerivedRates {
   // People-based base for engagement rates: unique people emailed minus
   // bounces, so multi-step sequences never dilute the rate.
   const people = { contacted: m.contacted ?? m.sent, bounced: m.bouncedAfterSend };
-  const delivered = deliveredCount(base);
+  const delivered = m.delivered ?? 0;
   const attempted = m.sent + (m.bounced - m.bouncedAfterSend);
   if (m.sent <= 0) {
     return {
@@ -140,12 +141,14 @@ export function sumKpis(rows: readonly KpiRow[]): KpiTotals {
     replies: 0,
     positiveReplies: 0,
     unsubscribes: 0,
+    delivered: 0,
   };
   let active = 0;
   let paused = 0;
   let completed = 0;
   for (const r of rows) {
     m.sent += r.sent;
+    m.delivered = (m.delivered ?? 0) + (r.delivered ?? 0);
     m.contacted = (m.contacted ?? 0) + (r.contacted ?? r.sent);
     m.bounced += r.bounced;
     m.bouncedAfterSend += r.bouncedAfterSend;

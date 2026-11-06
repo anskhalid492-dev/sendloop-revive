@@ -1,10 +1,12 @@
 # Roadmap
 
 ## Campaign sending reconciliation
-- [ ] Audit exact production campaign and each held message read-only against acceptance/event/job evidence.
-- [ ] Unify current outcome counts and distinguish accepted from confirmed delivery in preview.
-- [ ] Harden stale transitions and idempotency without changing production history or retrying ambiguous mail.
-- [ ] Run isolated regressions and deliver actual distinct-ID reconciliation and remaining provider evidence gaps; do not publish.
+- [x] Audit Agencies - Free Trials and all 116 held IDs read-only; 20 have pixel events, none has recorded acceptance/delivery/rejection evidence.
+- [x] Unify preview message-ID outcomes, distinguish provider acceptance from receipts, and remove cancelled follow-ups from bounced-message totals.
+- [x] Harden delivery/recovery/retry writes and prepare unapplied append-only history SQL without resending or changing production records.
+- [x] Run 2,171 isolated checks and document actual reconciliation in docs/campaign-reconciliation-2026-11-06.md with a complete 116-ID CSV.
+- [ ] Resolve held outcomes against authoritative provider logs and verify signed-in campaign/dashboard/export on a named throwaway account — blocked: provider logs and external-backend test session unavailable.
+- [ ] Apply approved future status-history SQL and verify real provider-event behavior — blocked: owner approval/manual production migration; nothing published or deployed.
 
 ## MunchMate chat validation
 - [x] Bound request history and knowledge excerpts without truncating the latest valid question or stored history.

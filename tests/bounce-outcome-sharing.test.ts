@@ -44,19 +44,19 @@ describe("bounce outcome is shared across every derived surface", () => {
     const units = Array.from(collapseMessageUnits(messages).values());
     const totals = computeAccountTotals(units, { from, to })[0]!;
     expect(totals.sent).toBe(1);
-    expect(totals.bounced).toBe(1);
+    expect(totals.bounced).toBe(0);
     expect(totals.delivered).toBe(0);
   });
 
   it("counts the bounce in the timeseries", () => {
     const units = Array.from(collapseMessageUnits(messages).values());
     const series = computeTimeseries(units, { bucket: "day", from, to });
-    expect(series.reduce((s, p) => s + p.bounced, 0)).toBe(1);
+    expect(series.reduce((s, p) => s + p.bounced, 0)).toBe(0);
   });
 
   it("counts the bounce in the sequence table", () => {
     const units = Array.from(collapseMessageUnits(messages).values());
     const steps = computeSequenceStats(units, { from, to });
-    expect(steps.reduce((s, r) => s + r.bounced, 0)).toBe(1);
+    expect(steps.reduce((s, r) => s + r.bounced, 0)).toBe(0);
   });
 });

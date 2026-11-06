@@ -80,13 +80,13 @@ export function KpiGrid({
     },
     {
       key: "delivered",
-      label: "Delivered",
+      label: "Confirmed delivered",
       value: c?.delivered ?? 0,
       previous: p?.delivered ?? null,
     },
     {
       key: "deliveryRate",
-      label: "Delivery rate",
+      label: "Confirmed delivery rate",
       value: rate(c?.delivered ?? 0, c?.sent ?? 0),
       previous: p ? rate(p.delivered, p.sent) : null,
       suffix: "%",

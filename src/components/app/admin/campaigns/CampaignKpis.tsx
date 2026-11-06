@@ -76,7 +76,7 @@ export function CampaignKpis({
       <Kpi icon={<CheckCircle2 className={s} />} label="Completed" value={n(totals.completed)} />
       <Kpi icon={<Users className={s} />} label="Total leads" value={n(totals.leads)} />
       <Kpi icon={<Send className={s} />} label="Emails sent" value={n(totals.sent)} trend={trends.sent} hint="Accepted by mailbox" />
-      <Kpi icon={<MailCheck className={s} />} label="Delivered" value={totals.sent ? n(totals.delivered) : "—"} hint="Estimate: sent − bounces" />
+      <Kpi icon={<MailCheck className={s} />} label="Confirmed delivered" value={totals.sent ? n(totals.delivered) : "—"} hint="Explicit delivery receipts only" />
       <Kpi icon={<BarChart3 className={s} />} label="Delivery rate" value={rateText(totals.deliveryRate)} hint="No SMTP delivery receipts" />
       <Kpi icon={<Eye className={s} />} label="Opens" value={n(totals.opens)} hint="Unique" />
       <Kpi icon={<BarChart3 className={s} />} label="Open rate" value={rateText(totals.openRate)} />

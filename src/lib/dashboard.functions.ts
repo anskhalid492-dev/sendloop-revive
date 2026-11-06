@@ -309,7 +309,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
           .from("campaign_messages")
           .select("id, sent_at, campaign_id, delivered_at, bounced_at, unsubscribed_at, replied_at")
           .eq("workspace_id", data.workspaceId)
-          .eq("status", "sent")
+          .not("sent_at", "is", null)
           .gte("sent_at", prevStart.toISOString()),
       ),
       fetchAllRows<any>(() =>
@@ -360,11 +360,11 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const windowMessages = messageRows.filter((m) => within(m.sent_at));
       return {
         sent: windowMessages.length,
-        delivered: windowMessages.filter((m) => !m.bounced_at).length,
+        delivered: messageRows.filter((m) => within(m.delivered_at) && !m.bounced_at).length,
         replies: windowReplies.length,
         positive: windowReplies.filter((r) => r.sentiment === "positive").length,
         meetings: meetingRows.filter((l) => within(l.last_activity_at)).length,
-        bounced: windowMessages.filter((m) => m.bounced_at).length,
+        bounced: messageRows.filter((m) => within(m.bounced_at)).length,
         unsubscribed: windowMessages.filter((m) => m.unsubscribed_at).length,
       };
     };
@@ -382,7 +382,13 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const b = buckets.get((m.sent_at as string).slice(0, 10));
       if (!b) continue;
       b.sent += 1;
-      if (!m.bounced_at) b.delivered += 1;
+
+    }
+    for (const m of messageRows) {
+      if (m.delivered_at && !m.bounced_at && inWindow(m.delivered_at, start)) {
+        const point = buckets.get(String(m.delivered_at).slice(0, 10));
+        if (point) point.delivered += 1;
+      }
     }
     for (const r of replyRows) {
       if (!inWindow(r.received_at, start)) continue;

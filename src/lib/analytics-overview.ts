@@ -25,7 +25,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const people = (predicate: (u: Unit) => boolean) => new Set(units.filter(predicate).map(u => u.leadKey)).size;
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
-  const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at && !u.signals.failed_at).length;
+  const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at ).length;
   // Legacy failures have a known outcome but no trustworthy occurrence date.
   // Keep them visible separately; never assign them to a period via updated_at.
   const undatedFailed = units.filter(u => !u.held && !u.sentAt && !u.signals.bounced_at && !u.signals.delivered_at && u.status === "failed" && !u.signals.failed_at).length;
@@ -43,7 +43,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
     opens: people(u => inRange(u.signals.opened_at)),
     clicks: people(u => inRange(u.signals.clicked_at)),
     replies: people(u => inRange(u.signals.replied_at)),
-    bounced: accounts.reduce((n, a) => n + a.bounced, 0),
+    bounced: units.filter(u => inRange(u.signals.bounced_at)).length,
     unsubscribed: accounts.reduce((n, a) => n + a.unsubscribed, 0),
   };
 }
@@ -61,8 +61,8 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
       const at = iso ? Date.parse(iso) : NaN;
       if (at < +from || at >= +to || !Number.isFinite(at)) continue;
       const key = Math.floor(at / step) * step;
-      const identity = `${key}:${field}:${u.leadKey}`;
-      if (field !== "sent" && seen.has(identity)) continue;
+      const identity = `${key}:${field}:${u.campaignId ?? ""}:${u.leadKey}`;
+      if (!["sent", "delivered", "bounced"].includes(field) && seen.has(identity)) continue;
       seen.add(identity);
       const p = points.get(key);
       if (p) p[field as Exclude<keyof AnalyticsTimeseriesPoint, "bucket">] += 1;

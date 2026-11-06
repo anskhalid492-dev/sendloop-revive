@@ -102,6 +102,10 @@ export async function applyDeliveryState(args: {
     if (!Object.keys(patch).length) return current;
     let write = supabaseAdmin.from("campaign_messages").update(patch as never).eq("id", args.message.id);
     write = row["updated_at"] ? write.eq("updated_at", String(row["updated_at"])) : write.is("updated_at", null);
+    // Guard the actual compared fields too: timestamp precision is not a version.
+    for (const field of ["delivery_status", "status", "last_event_at", "delivered_at", "bounced_at", "failed_at", ...(column ? [column] : [])]) {
+      write = row[field] == null ? write.is(field, null) : write.eq(field, String(row[field]));
+    }
     const { data: written, error } = await write.select("id");
     if (error) throw new Error(error.message);
     if (!written?.length) continue; // Lost CAS: re-read and re-rank.

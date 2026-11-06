@@ -8,7 +8,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { deliveredCount } from "@/lib/engagement-rates";
 import { collapseAnalyticsUnits, summarizeEngagement, engagementTrend, positiveReplyTrend, uniqueReplyIntents } from "@/lib/analytics-overview";
 import { fetchAllRows } from "@/lib/supabase-batch";
 import { scopeAnalyticsQuery } from "@/lib/analytics-filters";
@@ -81,11 +80,7 @@ function toSummary(row: Record<string, unknown> | undefined): AnalyticsSummary {
   const bounced = Number(row["bounced"] ?? 0);
   return {
     sent,
-    delivered: deliveredCount({
-      sent,
-      bounced,
-      confirmedDelivered: Number(row["delivered"] ?? 0),
-    }),
+    delivered: Number(row["delivered"] ?? 0),
     opens: Number(row["opens"] ?? 0),
     clicks: Number(row["clicks"] ?? 0),
     replies: Number(row["replies"] ?? 0),
@@ -754,6 +749,7 @@ export type Deliverability = {
   bounced: number;
   failed: number;
   unsubscribed: number;
+  held: number;
   reasons: Array<{ reason: string; count: number }>;
 };
 
@@ -793,6 +789,7 @@ export const getDeliverability = createServerFn({ method: "POST" })
       delivered: totals.delivered,
       bounced: totals.bounced,
       failed: totals.failed,
+      held: totals.held,
       unsubscribed: totals.unsubscribed,
       reasons: Array.from(counts.entries())
         .map(([reason, count]) => ({ reason, count }))

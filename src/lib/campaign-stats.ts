@@ -1,4 +1,4 @@
-import { countMessageOutcomes, type MessageOutcomeCounts } from "@/lib/message-outcomes";
+import { countMessageOutcomes, mergeMessageSnapshots, type MessageOutcomeCounts } from "@/lib/message-outcomes";
 import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
 /**
  * The single source of truth for campaign statistics.
@@ -9,10 +9,9 @@ import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
  *
  * Counting unit
  * -------------
- * One *logical email*: one (recipient, sequence step) pair. Retries, requeues
- * and duplicate planner rows for the same recipient+step collapse into a
- * single unit whose signals are the earliest observed of each kind. A message
- * can therefore never be counted twice, and a retry never adds a second send.
+ * One distinct campaign message ID. Repeated reads/events for that ID collapse;
+ * separate message IDs remain visible even for the same recipient and step.
+ * Engagement counters retain their explicitly people-based definitions.
  *
  * Definitions
  * -----------
@@ -287,16 +286,14 @@ export type ComputeInput = {
 };
 
 /**
- * Collapse raw message rows into logical units: exactly one per
- * recipient+step. Retries, requeues and duplicate webhook writes therefore
- * can never inflate a count.
+ * Collapse repeated reads of the same message ID; never merge separate sends.
  */
 export function collapseMessageUnits(
   messages: CampaignMessageRow[],
   events?: MessageEventSignals,
 ): Map<string, Unit> {
   const units = new Map<string, Unit>();
-  for (const m of messages) {
+  for (const m of mergeMessageSnapshots(messages)) {
     const leadKey = String(m.recipient_id ?? m.lead_id ?? m.id);
     const step = Math.max(1, Number(m.step_order ?? 1) || 1);
     const key = m.id;
@@ -403,8 +400,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   const openedLeads = new Set<string>();
   const clickedLeads = new Set<string>();
   const steps = new Map<number, CampaignStepStats>();
-  let sentBounced = 0;
-  const stepBounces = new Map<number, number>();
+
   const stepOf = (step: number) => {
     let row = steps.get(step);
     if (!row) {
@@ -445,11 +441,10 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     }
   }
 
-  let sentRejected = 0;
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
-    const bounced = Boolean(s.bounced_at) || bouncedLeads.has(unit.leadKey);
+    const bounced = Boolean(s.bounced_at) || unit.deliveryStatus === "bounced";
     const failed = !unit.held && !s.delivered_at && (Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt));
 
     const sentInRange = inRange(unit.sentAt);
@@ -457,14 +452,6 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       stats.sent += 1;
       step.sent += 1;
       contacted.add(unit.leadKey);
-      if (bounced) {
-        sentBounced += 1;
-        stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
-      } else if (unit.rejectedAfterSend) {
-        // Accepted for sending, then rejected by the provider: sent, not delivered.
-        sentRejected += 1;
-        stepBounces.set(unit.step, (stepBounces.get(unit.step) ?? 0) + 1);
-      }
     }
     if (inRange(s.delivered_at) && !bounced) {
       stats.delivered += 1;
@@ -494,7 +481,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.opened = openedLeads.size;
   stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
-  stats.bounced = bouncedLeads.size;
+  stats.bounced = [...units.values()].filter(u => inRange(u.signals.bounced_at)).length;
   stats.unsubscribed = unsubscribedLeads.size;
   stats.complained = complainedLeads.size;
   // Current outcomes are distinct message IDs; engagement remains people-based.
@@ -558,22 +545,18 @@ export function computeTimeseries(
   };
 
   const all = Array.from(units);
-  const bouncedPeople = bouncedLeadKeys(all);
-  const countedBounce = new Set<string>();
+
   const countedUnsub = new Set<string>();
   for (const u of all) {
-    const bouncedAt = unitBounceAt(u);
+    const bouncedAt = u.signals.bounced_at;
     at(u.sentAt, "sent");
-    if (!bouncedPeople.has(u.leadKey) && !u.signals.failed_at) {
+    if (!u.signals.bounced_at) {
       at(u.signals.delivered_at, "delivered");
     }
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
-    if (bouncedAt && !countedBounce.has(u.leadKey)) {
-      countedBounce.add(u.leadKey);
-      at(bouncedAt, "bounced");
-    }
+    at(bouncedAt, "bounced");
     const unsubAt = unitUnsubscribeAt(u);
     if (unsubAt && !countedUnsub.has(u.leadKey)) {
       countedUnsub.add(u.leadKey);
@@ -615,7 +598,7 @@ export function computeAccountTotals(
   const clickers = new Map<string, Set<string>>();
   const repliers = new Map<string, Set<string>>();
   const confirmedDelivered = new Map<string, number>();
-  const sentBounces = new Map<string, number>();
+
   /** True the first time this person is counted for this mailbox. */
   const addPersonOnce = (map: Map<string, Set<string>>, accountId: string, leadKey: string) => {
     const set = map.get(accountId) ?? new Set<string>();
@@ -630,8 +613,7 @@ export function computeAccountTotals(
     map.set(accountId, set);
   };
   const allUnits = Array.from(units);
-  const bouncedPeople = bouncedLeadKeys(allUnits);
-  const bouncedCounted = new Map<string, Set<string>>();
+
   const unsubCounted = new Map<string, Set<string>>();
   for (const u of allUnits) {
     if (!u.accountId) continue;
@@ -650,13 +632,10 @@ export function computeAccountTotals(
       };
       rows.set(u.accountId, row);
     }
-    const bouncedAt = unitBounceAt(u);
-    const personBounced = bouncedPeople.has(u.leadKey);
+    const bouncedAt = u.signals.bounced_at;
     if (inRange(u.sentAt)) {
       row.sent += 1;
-      if (personBounced) {
-        sentBounces.set(u.accountId, (sentBounces.get(u.accountId) ?? 0) + 1);
-      }
+
     }
     if (inRange(u.signals.delivered_at) && !u.signals.bounced_at) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
@@ -664,21 +643,18 @@ export function computeAccountTotals(
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
     if (inRange(u.signals.clicked_at)) addPerson(clickers, u.accountId, u.leadKey);
     if (inRange(u.signals.replied_at)) addPerson(repliers, u.accountId, u.leadKey);
-    if (inRange(bouncedAt) && addPersonOnce(bouncedCounted, u.accountId, u.leadKey)) {
+    if (inRange(bouncedAt)) {
       row.bounced += 1;
     }
     if (!u.held && !u.signals.bounced_at && !u.signals.delivered_at && inRange(u.signals.failed_at)) row.failed += 1;
-    if (u.held) row.held = (row.held ?? 0) + 1;
+    if (u.held && !u.signals.bounced_at && !u.signals.delivered_at) row.held = (row.held ?? 0) + 1;
     const unsubAt = unitUnsubscribeAt(u);
     if (inRange(unsubAt) && addPersonOnce(unsubCounted, u.accountId, u.leadKey)) {
       row.unsubscribed += 1;
     }
   }
   for (const row of rows.values()) {
-    // Same rule as the campaign totals: subtract bounced PEOPLE, not bounced
-    // send rows (a bounce often sits on a cancelled row with no `sent_at`).
-    void confirmedDelivered;
-    void sentBounces;
+    // Confirmed per-message receipts only.
     row.delivered = confirmedDelivered.get(row.accountId) ?? 0;
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;

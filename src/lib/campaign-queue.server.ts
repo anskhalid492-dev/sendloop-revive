@@ -92,30 +92,23 @@ export async function recoverUnprovenProcessing(
   const unproven = rows.filter((r) => !accepted.has(r.id));
   if (!unproven.length) return 0;
 
-  const requeue = unproven.filter((r) => decideInterrupted(r.last_error) === "requeue").map((r) => r.id);
-  const hold = unproven.filter((r) => decideInterrupted(r.last_error) === "hold_unknown");
-
-  if (requeue.length) {
-    await client
-      .from("campaign_messages")
-      .update({ status: "scheduled", scheduled_at: now.toISOString(), last_error: null })
-      .in("id", requeue)
-      .eq("status", "processing")
-      .is("sent_at", null)
-      .is("provider_message_id", null);
+  let requeued = 0;
+  let held = 0;
+  for (const row of unproven) {
+    const safe = decideInterrupted(row.last_error) === "requeue";
+    let write = client.from("campaign_messages").update(safe
+      ? { status: "scheduled", scheduled_at: now.toISOString(), last_error: null }
+      : { status: "failed", last_error: outcomeUnknownReason(row.last_error), attempts: NEVER_RETRY_ATTEMPTS })
+      .eq("id", row.id).eq("status", "processing").is("sent_at", null)
+      .is("provider_message_id", null).is("delivered_at", null).is("bounced_at", null);
+    write = row.last_error ? write.eq("last_error", row.last_error) : write.is("last_error", null);
+    if (row.updated_at) write = write.eq("updated_at", row.updated_at);
+    const { data: changed, error } = await write.select("id");
+    if (error) throw new Error(error.message);
+    if (changed?.length) { if (safe) requeued += 1; else held += 1; }
   }
-  for (const row of hold) {
-    await client
-      .from("campaign_messages")
-      .update({ status: "failed", last_error: outcomeUnknownReason(row.last_error), attempts: NEVER_RETRY_ATTEMPTS })
-      .eq("id", row.id)
-      .eq("last_error", row.last_error ?? "")
-      .eq("status", "processing")
-      .is("sent_at", null)
-      .is("provider_message_id", null);
-  }
-  console.log(JSON.stringify({ worker: "campaign-recovery", campaign_id: campaignId, requeued: requeue.length, held_unknown: hold.length }));
-  return unproven.length;
+  console.log(JSON.stringify({ worker: "campaign-recovery", campaign_id: campaignId, requeued, held_unknown: held }));
+  return requeued + held;
 }
 
 /** Queue-mode recovery: complete proven sends, then the shared unproven rule. */

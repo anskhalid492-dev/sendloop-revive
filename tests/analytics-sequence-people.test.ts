@@ -59,6 +59,6 @@ describe("analytics unit totals count people once", () => {
       unit({ leadKey: "c", step: 2, cancelledReason: "recipient_bounced" }),
     ];
     const rows = computeSequenceStats(units, WINDOW);
-    expect(rows.map((r) => r.bounced)).toEqual([1, 1]);
+    expect(rows.map((r) => r.bounced)).toEqual([0, 0]);
   });
 });

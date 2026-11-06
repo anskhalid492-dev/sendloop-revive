@@ -9,7 +9,7 @@ describe("throwaway delivery transition races", () => {
     const row = { id: "throwaway-message", status: "sent", delivery_status: "sent", updated_at: "v1" };
     let raced = false;
     fixture.db = messageDb({ campaign_messages: [row], conversation_messages: [] }, [], () => {
-      if (!raced) { raced = true; Object.assign(row, { delivery_status: "bounced", status: "failed", bounced_at: "2026-11-06T09:00:00Z", updated_at: "v2" }); }
+      if (!raced) { raced = true; Object.assign(row, { delivery_status: "bounced", status: "failed", bounced_at: "2026-11-06T09:00:00Z", updated_at: "v1" }); }
     });
     expect(await applyDeliveryState({ message: { id: row.id, status: "sent", delivery_status: "sent" }, state: "delivered", occurredAt: "2026-11-06T10:00:00Z" })).toBe("bounced");
     expect(row.delivery_status).toBe("bounced");
