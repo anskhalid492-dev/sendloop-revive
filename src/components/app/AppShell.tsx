@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Mail,
   Menu,
   Monitor,
   Moon,
