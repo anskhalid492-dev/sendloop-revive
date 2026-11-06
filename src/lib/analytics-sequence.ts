@@ -97,7 +97,7 @@ function accumulate(
       counted.contacted.add(unit.leadKey);
       target.contacted += 1;
     }
-    if (!bounced && !unit.signals.delivered_at && !(unit.status === "failed" && unit.rejectedAfterSend)) target.accepted += 1;
+    if (!bounced && !unit.signals.delivered_at && !unit.rejectedAfterSend) target.accepted += 1;
   }
   // Delivery requires this message's actual receipt.
   if (inRange(unit.signals.delivered_at) && unitConfirmedDelivered(unit)) target.delivered += 1;

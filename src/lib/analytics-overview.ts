@@ -35,7 +35,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
     sent,
     contacted: people(u => inRange(u.sentAt)),
     delivered: confirmed,
-    accepted: units.filter(u => inRange(u.sentAt) && !unitBounced(u) && !u.signals.delivered_at && !(u.status === "failed" && u.rejectedAfterSend)).length,
+    accepted: units.filter(u => inRange(u.sentAt) && !unitBounced(u) && !u.signals.delivered_at && !u.rejectedAfterSend).length,
     deliveryComplete: sent > 0 && units.filter(u => inRange(u.sentAt) && Boolean(u.signals.delivered_at || u.signals.bounced_at)).length === sent,
     // A mutable updated_at must not move an old failure into this window.
     // Includes sends the provider rejected after accepting them (dated by failed_at).

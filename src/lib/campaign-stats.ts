@@ -478,7 +478,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       stats.delivered += 1;
       step.delivered += 1;
     }
-    if (sentInRange && !bounced && !s.delivered_at && !(unit.status === "failed" && unit.rejectedAfterSend)) {
+    if (sentInRange && !bounced && !s.delivered_at && !unit.rejectedAfterSend) {
       stats.accepted += 1;
     }
     if (inRange(s.opened_at)) {
