@@ -1,4 +1,5 @@
 import { BarChart3, Building2, Gauge, Info, MailX, ShieldCheck, Shuffle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
@@ -17,6 +18,21 @@ import {
 import { INBOX_ROTATION_STRATEGIES, type InboxRotationStrategy } from "@/lib/campaign-model";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
+function Hint({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button type="button" aria-label="More info" className="inline-flex shrink-0 text-muted-foreground hover:text-foreground">
+            <Info className="size-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs text-xs">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function Toggle({
   title,
   description,
@@ -31,15 +47,13 @@ function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
       <div className="min-w-0">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-        {impact ? (
-          <p className="mt-1 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">When on:</span> {impact}
-          </p>
-        ) : null}
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          {title}
+          {impact ? <Hint text={impact} /> : null}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} aria-label={title} />
     </div>
@@ -58,13 +72,13 @@ function Group({
   children: React.ReactNode;
 }) {
   return (
-    <section className="surface-card p-5">
+    <section className="surface-card p-4">
       <div className="flex items-center gap-2">
-        <Icon className="size-4 text-primary" />
+        <Icon className="size-4 shrink-0 text-primary" />
         <h3 className="font-semibold">{title}</h3>
+        <Hint text={subtitle} />
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      <div className="mt-4 space-y-3">{children}</div>
+      <div className="mt-3 space-y-2">{children}</div>
     </section>
   );
 }
@@ -91,30 +105,17 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
   const selectedAccountCount = settings.sendingAccountIds.length;
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      <section className="lg:col-span-2 flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-4">
-        <Info className="mt-0.5 size-4 shrink-0 text-primary" />
-        <div className="text-sm text-muted-foreground">
-          <p className="font-medium text-foreground">What these options control</p>
-          <p className="mt-1">
-            Options decide <span className="font-medium text-foreground">how</span> this campaign
-            sends, not what it says. Inbox rotation spreads volume across mailboxes, stop conditions
-            decide when a lead should stop receiving follow-ups, tracking controls what is measured
-            (and what deliverability cost you pay for it), and compliance keeps every send opt-out
-            friendly. Changes apply to messages that have not been sent yet.
-          </p>
-        </div>
-      </section>
-      <section className="surface-card space-y-4 p-5 lg:col-span-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="surface-card space-y-3 p-4 lg:col-span-2">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h3 className="flex items-center gap-2 font-semibold">
-              <Shuffle className="size-4 text-primary" />
+              <Shuffle className="size-4 shrink-0 text-primary" />
               Inbox rotation
+              <Hint text="Spreads volume across mailboxes so no single inbox carries the whole campaign. With rotation off, every email sends from one mailbox." />
             </h3>
-            <p className="text-sm text-muted-foreground">
-              Spread this campaign across the {selectedAccountCount} selected mailbox
-              {selectedAccountCount === 1 ? "" : "es"} so no single inbox carries the whole volume.
+            <p className="text-xs text-muted-foreground">
+              Uses {selectedAccountCount} selected mailbox{selectedAccountCount === 1 ? "" : "es"}.
             </p>
           </div>
           <Switch
@@ -153,7 +154,10 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="rotation-cap">Daily cap per mailbox</Label>
+              <Label htmlFor="rotation-cap" className="flex items-center gap-1.5">
+                Daily cap per mailbox
+                <Hint text="0 uses each mailbox's own daily limit. Set a lower number to stay extra conservative on this campaign." />
+              </Label>
               <Input
                 id="rotation-cap"
                 type="number"
@@ -166,29 +170,22 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
                   })
                 }
               />
-              <p className="text-xs text-muted-foreground">
-                0 uses each mailbox&rsquo;s own daily limit. Set a lower number to stay extra
-                conservative on this campaign.
-              </p>
+              <p className="text-xs text-muted-foreground">0 = mailbox&rsquo;s own limit.</p>
             </div>
           </div>
         ) : (
-          <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-            Rotation is off — every email in this campaign sends from a single mailbox, which can
-            burn its reputation quickly on larger lists.
-          </p>
+          <p className="text-xs text-muted-foreground">Rotation is off — sends from a single mailbox.</p>
         )}
       </section>
 
-      <section className="surface-card space-y-4 p-5 lg:col-span-2">
+      <section className="surface-card space-y-3 p-4 lg:col-span-2">
         <div>
           <h3 className="flex items-center gap-2 font-semibold">
-            <Gauge className="size-4 text-primary" />
+            <Gauge className="size-4 shrink-0 text-primary" />
             Campaign sending limit
+            <Hint text="Total emails this campaign can send, including follow-ups. The campaign stops automatically when it reaches this limit." />
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Choose how many total emails this campaign can send, including follow-ups.
-          </p>
+          <p className="text-xs text-muted-foreground">Total emails, including follow-ups.</p>
         </div>
 
         <div className="max-w-xs space-y-1.5">
@@ -251,12 +248,8 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
           </div>
         ) : null}
 
-        <p className="text-sm text-muted-foreground">
-          Your campaign will automatically stop when it reaches this limit.
-        </p>
-
         {limitReached ? (
-          <p className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+          <p className="rounded-lg border border-border bg-muted/40 p-2.5 text-xs text-muted-foreground">
             This campaign reached its limit and stopped sending. Increase the number above to
             continue.
           </p>
@@ -271,20 +264,23 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
       >
         <Toggle
           title="Stop when a lead replies"
-          description="Remaining follow-ups are cancelled as soon as a reply lands."
+          description="Cancel follow-ups when they reply."
           impact="The lead moves to Replied, all queued steps for them are cancelled, and the thread appears in your Unified Inbox."
           checked={settings.stopOnReply}
           onChange={(v) => patchSettings({ stopOnReply: v })}
         />
         <Toggle
           title="Stop the whole company on reply"
-          description="Pause every other contact at the same company when one person replies."
+          description="Pause colleagues when one person replies."
           impact="Colleagues of the person who replied stop receiving the sequence, so you never pitch one company twice."
           checked={settings.stopOnCompanyReply}
           onChange={(v) => patchSettings({ stopOnCompanyReply: v })}
         />
-        <div className="space-y-1.5 rounded-lg border border-border p-4">
-          <Label htmlFor="max-company">Max contacts per company</Label>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
+          <Label htmlFor="max-company" className="flex items-center gap-1.5">
+            Max contacts per company
+            <Hint text="Caps how many people at the same company can enter this campaign, so an account never receives the same pitch from several contacts at once." />
+          </Label>
           <Input
             id="max-company"
             type="number"
@@ -292,11 +288,8 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
             max={50}
             value={settings.maxContactsPerCompany}
             onChange={(e) => patchSettings({ maxContactsPerCompany: Number(e.target.value) || 1 })}
+            className="h-8 w-20 shrink-0"
           />
-          <p className="text-xs text-muted-foreground">
-            Caps how many people at the same company can enter this campaign, so an account never
-            receives the same pitch from several contacts at once.
-          </p>
         </div>
       </Group>
 
@@ -307,7 +300,7 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
       >
         <Toggle
           title="Open rate tracking"
-          description="Records when a recipient opens an email in this campaign."
+          description="Record email opens."
           impact="On: unique opens and open rate populate in Analytics. Off: no open events are stored and Analytics shows “Disabled” instead of 0%."
           checked={settings.openTracking}
           onChange={(v) => patchSettings({ openTracking: v })}
@@ -315,14 +308,14 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
 
         <Toggle
           title="Click tracking"
-          description="Rewrites links so clicks are attributed to the campaign."
+          description="Track link clicks."
           impact="Click counts appear per lead and per step. Rewritten links can slightly reduce inbox placement."
           checked={settings.clickTracking}
           onChange={(v) => patchSettings({ clickTracking: v })}
         />
         <Toggle
           title="Send plain text only"
-          description="Strips HTML so emails look like a normal 1:1 message."
+          description="Send without HTML formatting."
           impact="Best deliverability option — no images, no styling, and open tracking cannot be applied."
           checked={settings.textOnly}
           onChange={(v) => patchSettings({ textOnly: v })}
@@ -336,7 +329,7 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
       >
         <Toggle
           title="Include unsubscribe link"
-          description="Appends a one-click opt-out footer to every email in the sequence."
+          description="Add a one-click opt-out footer."
           impact="Opt-outs are suppressed instantly across this workspace and never receive another campaign email."
           checked={settings.unsubscribeEnabled}
           onChange={(v) => patchSettings({ unsubscribeEnabled: v })}
@@ -348,7 +341,7 @@ export function OptionsTab({ builder }: { builder: CampaignBuilder }) {
         title="Deliverability checklist"
         subtitle="A live read of your current option mix against cold-email best practice."
       >
-        <ul className="space-y-2 text-sm text-muted-foreground">
+        <ul className="space-y-1.5 text-xs text-muted-foreground">
           <li>
             {settings.textOnly ? "✓" : "•"} Plain-text sending is {settings.textOnly ? "on" : "off"}{" "}
             — plain text usually lands in the primary tab.
