@@ -127,7 +127,7 @@ export function buildFunnel(input: {
   return [
     { key: "leads", label: "Leads", value: input.leads },
     { key: "sent", label: "Emails sent", value: input.sent },
-    { key: "delivered", label: "Delivered", value: input.delivered },
+    { key: "delivered", label: "Confirmed delivered", value: input.delivered },
     { key: "replies", label: "Replies", value: input.replies },
     { key: "positive", label: "Positive replies", value: input.positive },
     { key: "meetings", label: "Meetings", value: input.meetings },

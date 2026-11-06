@@ -299,7 +299,7 @@ export function collapseMessageUnits(
   for (const m of messages) {
     const leadKey = String(m.recipient_id ?? m.lead_id ?? m.id);
     const step = Math.max(1, Number(m.step_order ?? 1) || 1);
-    const key = `${leadKey}|${step}`;
+    const key = m.id;
     const status = String(m.status ?? "");
     const eventSignals = events?.get(m.id) ?? {};
 

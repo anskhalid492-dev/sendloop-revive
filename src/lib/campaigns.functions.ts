@@ -590,7 +590,7 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
           context.supabase
             .from("campaign_messages")
             .select(
-              "recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at",
+              "recipient_id, lead_id, status, delivery_status, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at, last_error, attempts",
             )
             .eq("campaign_id", data.campaignId)
             .in("recipient_id", ids),

@@ -5,6 +5,8 @@
  * A recipient can have several messages (initial + follow-ups); the strongest
  * real event across them is the lead's live state.
  */
+import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
+
 export type DeliveryMessage = Record<string, string | null>;
 
 export const DELIVERY_RANK: Record<string, number> = {
@@ -20,6 +22,7 @@ export const DELIVERY_RANK: Record<string, number> = {
   complained: 9,
   bounced: 10,
   failed: 10,
+  held: 2,
 };
 
 /**
@@ -42,6 +45,8 @@ export function messageDeliveryState(m: DeliveryMessage): string {
   if (m["bounced_at"] || m["delivery_status"] === "bounced" || reason === "recipient_bounced") {
     return "bounced";
   }
+  if (m["delivered_at"]) return "delivered";
+  if (isHeldOutcomeUnknown({ last_error: m["last_error"], attempts: Number(m["attempts"] ?? 0) })) return "held";
   if (m["failed_at"] || m["status"] === "failed") return "failed";
   if (reason === "recipient_complained") return "complained";
   if (reason === "recipient_unsubscribed") return "unsubscribed";
