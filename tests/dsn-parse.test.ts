@@ -47,7 +47,7 @@ describe("delivery reports", () => {
       text: "Diagnostic-Code: smtp; 550 5.7.1 [CS] Message blocked. If this is a false positive, please report",
       subject: "Undelivered Mail Returned to Sender",
     });
-    expect(r.kind).toBe("failed");
+    expect(r.kind).toBe("bounced");
     expect(r.status).toBe("5.7.1");
     expect(normalizeReportedDeliveryKind("bounced", r.reason)).toBe("failed");
   });
@@ -57,7 +57,8 @@ describe("delivery reports", () => {
     expect(normalizeReportedDeliveryKind("bounced", "550 5.1.1 No such user")).toBe("bounced");
   });
 
-  it("treats an ambiguous bare 550 as failed rather than inventing an invalid recipient", () => {
+  // Owner rule (Nov 2026): a bare 550 counts as a bounce, without suppression.
+  it("treats a bare 550 report as bounced", () => {
     const r = parseDeliveryReport({
       text: "Diagnostic-Code: smtp; 550",
       subject: "Undelivered Mail Returned to Sender",
