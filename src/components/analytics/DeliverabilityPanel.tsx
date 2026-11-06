@@ -40,12 +40,6 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
       tone: "text-destructive",
     },
     {
-      label: "Failed sends",
-      value: formatCount(data?.failed ?? 0),
-      sub: `${formatPct(rate(data?.failed ?? 0, sent))} of sends`,
-      tone: "text-amber-600 dark:text-amber-400",
-    },
-    {
       label: "Unsubscribe rate",
       value: formatPct(rate(data?.unsubscribed ?? 0, sent)),
       sub: `${formatCount(data?.unsubscribed ?? 0)} unsubscribed`,
@@ -60,7 +54,7 @@ export function DeliverabilityPanel({ filters }: { filters: AnalyticsFilters }) 
       {query.isLoading ? (
         <Skeleton className="mt-3 h-32 w-full rounded-xl" />
       ) : (
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {tiles.map((tile) => (
             <div key={tile.label} className="rounded-xl border border-border/50 p-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">

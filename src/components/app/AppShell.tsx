@@ -17,11 +17,11 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Mail,
   Menu,
   Monitor,
   Moon,
   Send,
-  Server,
   Settings,
   Sparkles,
   Sun,
@@ -95,7 +95,7 @@ const navGroups = [
   {
     label: "Infrastructure",
     items: [
-      { to: "/mailboxes", label: "Email Accounts", icon: Server },
+      { to: "/mailboxes", label: "Email Accounts", icon: Mail },
       { to: "/warmup", label: "Warmup", icon: Flame },
     ],
   },
