@@ -1,3 +1,4 @@
+import { MESSAGE_OUTCOME_LABELS } from "@/lib/message-outcomes";
 import { useMemo, useState } from "react";
 import type { SendFailureDescription } from "@/lib/delivery-lifecycle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -64,7 +65,8 @@ function failureOf(m: QueueMessage): SendFailureDescription | null {
 }
 
 function bounceOf(m: QueueMessage): BounceExplanation | null {
-  const isBounce = Boolean(m.bounced_at) || m.cancelled_reason === "recipient_bounced";
+  // Only a SENT email can bounce; a cancelled follow-up of a bounced recipient is "Cancelled".
+  const isBounce = m.outcome ? m.outcome === "bounced" : Boolean(m.bounced_at) && m.status !== "cancelled";
   if (!isBounce) return null;
   return explainBounce(m.bounce_reason);
 }
@@ -459,9 +461,9 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                         variant="outline"
                         className={bounceOf(m) ? STATUS_STYLES.bounced : STATUS_STYLES[m.status]}
                       >
-                        {m.outcome === "held" ? "Held for review" : m.outcome === "delivered" ? "Confirmed delivered" : bounceOf(m) ? "bounced" : m.status}
+                        {m.outcome ? MESSAGE_OUTCOME_LABELS[m.outcome] : m.status}
                       </Badge>
-                      {!bounceOf(m) && m.status === "failed" && failureOf(m) ? (
+                      {!bounceOf(m) && m.outcome !== "held" && m.status === "failed" && failureOf(m) ? (
                         <p className="mt-0.5 max-w-[16rem] text-xs text-muted-foreground">
                           {failureOf(m)!.category === "outcome_unknown" ? "Held for review" : failureOf(m)!.label}
                           {failureOf(m)!.code ? ` · ${failureOf(m)!.code}` : ""}
