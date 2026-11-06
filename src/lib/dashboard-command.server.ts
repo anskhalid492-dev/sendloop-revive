@@ -408,6 +408,7 @@ supabase
       leads: leadsPerCampaign.get(id) ?? 0,
       sentLifetime: sentMine.length,
       sentToday,
+      sentInRange: mine.filter(m => within(m["sent_at"], rangeStart, nowMs + 1)).length,
       delivered: mine.filter(m => within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplies,
       positive,
