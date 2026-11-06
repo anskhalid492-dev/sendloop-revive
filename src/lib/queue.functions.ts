@@ -94,7 +94,8 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // A recipient who bounced or unsubscribed mid-sequence has their remaining
     // mail cancelled with the reason attached — include those rows here too.
     if (data.bounced) {
-      query = query.or("bounced_at.not.is.null,delivery_status.eq.bounced");
+      // Bounced = a SENT message with a recorded rejection; never a cancelled follow-up.
+      query = query.or("bounced_at.not.is.null,delivery_status.eq.bounced").neq("status", "cancelled");
     }
     if (data.unsubscribed) {
       query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
