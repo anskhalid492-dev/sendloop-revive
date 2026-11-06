@@ -77,6 +77,7 @@ import { AiReplyButton } from "@/components/inbox/AiReplyButton";
 import { composerHtmlToText, sanitizeComposerHtml, textToComposerHtml } from "@/lib/rich-text";
 import { sanitizeInboundHtml } from "@/lib/inbound-html";
 import { cn } from "@/lib/utils";
+import { REPLY_SOURCE_LABELS, REPLY_SOURCE_STYLES } from "@/lib/reply-source";
 
 function snoozeOptions() {
   const now = new Date();
@@ -538,7 +539,19 @@ export function ConversationView({
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold">{conversation.subject}</h2>
+          <div className="flex min-w-0 items-center gap-2">
+            {data.replySource ? (
+              <span
+                className={cn(
+                  "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                  REPLY_SOURCE_STYLES[data.replySource],
+                )}
+              >
+                {REPLY_SOURCE_LABELS[data.replySource]}
+              </span>
+            ) : null}
+            <h2 className="truncate text-sm font-semibold">{conversation.subject}</h2>
+          </div>
           <p className="truncate text-xs text-muted-foreground">{conversation.prospect_email}</p>
         </div>
 
