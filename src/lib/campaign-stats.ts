@@ -492,8 +492,9 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.attempted = currentOutcomes.attempted;
   if (noRange) {
     stats.sent = currentOutcomes.providerAccepted;
-    stats.delivered = currentOutcomes.delivered;
     stats.bounced = currentOutcomes.bounced;
+    // Delivered = accepted by the mail server and not bounced.
+    stats.delivered = Math.max(currentOutcomes.delivered, currentOutcomes.providerAccepted - currentOutcomes.bounced);
     stats.failed = currentOutcomes.failed;
     stats.scheduled = currentOutcomes.queued;
     stats.sending = currentOutcomes.sending;
@@ -655,7 +656,7 @@ export function computeAccountTotals(
   }
   for (const row of rows.values()) {
     // Confirmed per-message receipts only.
-    row.delivered = confirmedDelivered.get(row.accountId) ?? 0;
+    row.delivered = Math.max(confirmedDelivered.get(row.accountId) ?? 0, row.sent - row.bounced);
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;

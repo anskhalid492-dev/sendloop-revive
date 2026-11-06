@@ -299,7 +299,7 @@ supabase
     return {
       sent: sentMsgs.length,
       // Provider receipts, never inferred from acceptance.
-      delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
+      delivered: sentMsgs.filter(m => !(m as Record<string, unknown>)["bounced_at"]).length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,

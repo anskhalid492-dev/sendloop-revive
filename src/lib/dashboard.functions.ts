@@ -360,7 +360,7 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const windowMessages = messageRows.filter((m) => within(m.sent_at));
       return {
         sent: windowMessages.length,
-        delivered: messageRows.filter((m) => within(m.delivered_at) && !m.bounced_at).length,
+        delivered: windowMessages.filter((m) => !m.bounced_at).length,
         replies: windowReplies.length,
         positive: windowReplies.filter((r) => r.sentiment === "positive").length,
         meetings: meetingRows.filter((l) => within(l.last_activity_at)).length,
