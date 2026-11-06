@@ -87,15 +87,12 @@ export function unsubscribeRatePercent(unsubscribed: number, base: PeopleBase | 
 }
 
 /**
- * Delivered = everything accepted for sending that did not bounce back.
- * Customer mailboxes send over SMTP through the relay and never report a
- * delivery confirmation, so the raw `delivered` flag under-reports badly (a
- * 50-send campaign read "18 delivered") and can never be the base. A provider
- * confirmation can never raise this above accepted-minus-bounced either:
- * delivered + bounced must always equal the accepted sends, otherwise the UI
- * shows "378 sent / 378 delivered / 3 bounced".
- * Every surface that shows a delivered count MUST use this helper.
+ * Confirmed delivered = explicit per-message delivery receipts only, capped by
+ * reachable sends. Provider/SMTP acceptance is never treated as delivery; the
+ * accepted-but-unconfirmed emails are reported separately as "Accepted".
+ * Every surface that shows a delivered count MUST use this helper or the shared
+ * message outcomes in `@/lib/message-outcomes`.
  */
 export function deliveredCount(base: ReachableBase & { confirmedDelivered?: number }): number {
-  return Math.min(reachable(base), Math.max(base.confirmedDelivered ?? 0, reachable(base)));
+  return Math.min(reachable(base), Math.max(0, base.confirmedDelivered ?? 0));
 }
