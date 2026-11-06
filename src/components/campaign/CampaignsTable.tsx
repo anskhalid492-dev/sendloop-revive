@@ -259,7 +259,7 @@ export function CampaignsTable({
                 <SortButton label="Replied" sortKey="replies" active={sortKey === "replies"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[8%] text-right">
-                <SortButton label="Reached" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
+                <SortButton label="Confirmed delivered" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[9%] pl-6">
                 <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />
@@ -335,7 +335,7 @@ export function CampaignsTable({
                   <TableCell className="text-right tabular-nums">{numberFmt.format(row.leads)}</TableCell>
                   <TableCell
                     className="text-right tabular-nums"
-                    title={`${numberFmt.format(row.opened)} opened from ${numberFmt.format(row.reached)} reached`}
+                    title={`${numberFmt.format(row.opened)} opened · ${numberFmt.format(row.reached)} confirmed delivered`}
                   >
                     {row.openRate.toFixed(1)}%
                   </TableCell>
