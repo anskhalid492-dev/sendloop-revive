@@ -49,6 +49,9 @@ export type CampaignRow = {
   sentLifetime: number;
   /** Successful sends inside the campaign's current local sending day. */
   sentToday: number;
+  /** Accepted sends inside the selected range (the bounce-rate base). */
+  sentInRange?: number;
+  /** Confirmed delivered: per-message receipts only. */
   delivered: number;
   replies: number;
   positive: number;

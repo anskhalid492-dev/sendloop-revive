@@ -350,6 +350,8 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
     const inWindow = (value: string | null, from: Date) =>
       Boolean(value) && new Date(value as string) >= from;
 
+    const replyPeople = (rows: any[]) =>
+      new Set(rows.map((r) => String(r.lead_id ?? r.from_email ?? r.id).trim().toLowerCase())).size;
     const count = (from: Date, to: Date): PulseTotals => {
       const within = (value: string | null) => {
         if (!value) return false;
@@ -360,9 +362,11 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
       const windowMessages = messageRows.filter((m) => within(m.sent_at));
       return {
         sent: windowMessages.length,
-        delivered: windowMessages.filter((m) => !m.bounced_at).length,
-        replies: windowReplies.length,
-        positive: windowReplies.filter((r) => r.sentiment === "positive").length,
+        // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
+        delivered: windowMessages.filter((m) => m.delivered_at && !m.bounced_at).length,
+        // Engagement counts people (same rule as Analytics), not reply messages.
+        replies: replyPeople(windowReplies),
+        positive: replyPeople(windowReplies.filter((r) => r.sentiment === "positive")),
         meetings: meetingRows.filter((l) => within(l.last_activity_at)).length,
         bounced: messageRows.filter((m) => within(m.bounced_at)).length,
         unsubscribed: windowMessages.filter((m) => m.unsubscribed_at).length,

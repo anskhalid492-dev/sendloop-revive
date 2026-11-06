@@ -114,36 +114,35 @@ export async function workspaceAnalytics(ctx: ApiContext) {
   const from = q.from ?? new Date(Date.now() - 30 * 86_400_000).toISOString();
   const to = q.to ?? new Date().toISOString();
 
-  const countMessages = async (apply: (query: unknown) => unknown) => {
-    let query = ctx.admin
+  // One shared, distinct-message-ID outcome classification (src/lib/message-outcomes.ts).
+  const { fetchAllRows } = await import("@/lib/supabase-batch");
+  const { countMessageOutcomes } = await import("@/lib/message-outcomes");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = await fetchAllRows<any>(() =>
+    (ctx.admin as any)
       .from("campaign_messages")
+      .select("id, status, delivery_status, sent_at, delivered_at, bounced_at, failed_at, last_error, attempts, updated_at, opened_at, clicked_at")
+      .eq("workspace_id", ctx.auth.workspaceId)
+      .gte("created_at", from)
+      .lte("created_at", to)
+      .order("id", { ascending: true }),
+  );
+  const outcomes = countMessageOutcomes(rows);
+  const sent = outcomes.providerAccepted;
+  const delivered = outcomes.delivered;
+  const bounced = outcomes.bounced;
+  const failed = outcomes.failed;
+  const opened = rows.filter((r) => r.opened_at).length;
+  const clicked = rows.filter((r) => r.clicked_at).length;
+  const replies = await (async () => {
+    const { count } = await ctx.admin
+      .from("campaign_replies")
       .select("id", { count: "exact", head: true })
       .eq("workspace_id", ctx.auth.workspaceId)
       .gte("created_at", from)
       .lte("created_at", to);
-    query = apply(query) as typeof query;
-    const { count } = await query;
     return count ?? 0;
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [sent, delivered, opened, clicked, bounced, failed, replies] = await Promise.all([
-    countMessages((q2: any) => q2.eq("status", "sent")),
-    countMessages((q2: any) => q2.not("delivered_at", "is", null)),
-    countMessages((q2: any) => q2.not("opened_at", "is", null)),
-    countMessages((q2: any) => q2.not("clicked_at", "is", null)),
-    countMessages((q2: any) => q2.not("bounced_at", "is", null)),
-    countMessages((q2: any) => q2.eq("status", "failed")),
-    (async () => {
-      const { count } = await ctx.admin
-        .from("campaign_replies")
-        .select("id", { count: "exact", head: true })
-        .eq("workspace_id", ctx.auth.workspaceId)
-        .gte("created_at", from)
-        .lte("created_at", to);
-      return count ?? 0;
-    })(),
-  ]);
+  })();
 
   const rate = (part: number) => (sent > 0 ? Number(((part / sent) * 100).toFixed(2)) : 0);
 
@@ -151,7 +150,7 @@ export async function workspaceAnalytics(ctx: ApiContext) {
     data: {
       object: "analytics",
       period: { from, to },
-      totals: { sent, delivered, opened, clicked, bounced, failed, replies },
+      totals: { sent, accepted: outcomes.accepted, delivered, opened, clicked, bounced, failed, held: outcomes.held, cancelled: outcomes.cancelled, queued: outcomes.queued + outcomes.sending, replies },
       rates: {
         delivery_rate: rate(delivered),
         open_rate: rate(opened),

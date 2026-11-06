@@ -1,3 +1,4 @@
+import { MESSAGE_OUTCOME_LABELS } from "@/lib/message-outcomes";
 import { useMemo, useState } from "react";
 import type { SendFailureDescription } from "@/lib/delivery-lifecycle";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -64,7 +65,8 @@ function failureOf(m: QueueMessage): SendFailureDescription | null {
 }
 
 function bounceOf(m: QueueMessage): BounceExplanation | null {
-  const isBounce = Boolean(m.bounced_at) || m.cancelled_reason === "recipient_bounced";
+  // Only a SENT email can bounce; a cancelled follow-up of a bounced recipient is "Cancelled".
+  const isBounce = m.outcome ? m.outcome === "bounced" : Boolean(m.bounced_at) && m.status !== "cancelled";
   if (!isBounce) return null;
   return explainBounce(m.bounce_reason);
 }
@@ -215,29 +217,49 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
 
   return (
     <div className="space-y-4">
+      {/* Message outcomes: every distinct email ID is in exactly one card. */}
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-9">
-        {([...MESSAGE_STATUSES, "delivered", "bounced", "unsubscribed"] as const).map((s) => (
+        {(
+          [
+            ["pending", "Queued (pending)", "Waiting to be scheduled"],
+            ["scheduled", "Queued (scheduled)", "Scheduled to send"],
+            ["processing", "Sending", "Handed to the mail server now"],
+            ["sent", "Accepted", "Accepted by the mail server; no receipt or bounce yet"],
+            ["delivered", "Confirmed delivered", "Explicit delivery receipt"],
+            ["bounced", "Bounced", "Sent, then rejected by the recipient's server"],
+            ["failed", "Failed", "Definitive sending failure"],
+            ["held", "Held for review", "Outcome unknown. Never failed, never resent automatically."],
+            ["cancelled", "Cancelled", "Never sent"],
+          ] as const
+        ).map(([key, label, hint]) => (
           <Button
             variant="outline"
-            key={s}
+            key={key}
             type="button"
-            onClick={() => setStatus(status === s ? null : s)}
+            title={hint}
+            onClick={() => setStatus(status === key ? null : key)}
             className={cn(
-              "surface-card px-4 py-3 text-left transition hover:border-primary/40",
-              status === s && "border-primary ring-1 ring-primary/30",
+              "surface-card h-auto flex-col items-start px-4 py-3 text-left transition hover:border-primary/40",
+              status === key && "border-primary ring-1 ring-primary/30",
             )}
           >
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {s === "sent" ? "Accepted (current)" : s === "delivered" ? "Confirmed delivered" : s}
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+            <p className="text-xl font-semibold tabular-nums">
+              {(key === "held" ? (counts as { unknown?: number } | undefined)?.unknown : counts?.[key]) ?? 0}
             </p>
-            <p className="text-xl font-semibold tabular-nums">{counts?.[s] ?? 0}</p>
           </Button>
         ))}
-        <Button variant="outline" onClick={() => setStatus(status === "held" ? null : "held")} className="surface-card h-auto flex-col items-start px-4 py-3 text-left" title="Interrupted or timed-out sends whose outcome is unknown. Never resent automatically.">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            held for review
-          </p>
-          <p className="text-xl font-semibold tabular-nums">{(counts as { unknown?: number } | undefined)?.unknown ?? 0}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+        <span className="font-semibold uppercase tracking-wide">Engagement</span>
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => setStatus(status === "unsubscribed" ? null : "unsubscribed")}
+          className={cn(status === "unsubscribed" && "border-primary ring-1 ring-primary/30")}
+        >
+          Unsubscribed (people) · <span className="ml-1 tabular-nums">{counts?.unsubscribed ?? 0}</span>
         </Button>
       </div>
 
@@ -439,9 +461,9 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                         variant="outline"
                         className={bounceOf(m) ? STATUS_STYLES.bounced : STATUS_STYLES[m.status]}
                       >
-                        {m.outcome === "held" ? "Held for review" : m.outcome === "delivered" ? "Confirmed delivered" : bounceOf(m) ? "bounced" : m.status}
+                        {m.outcome ? MESSAGE_OUTCOME_LABELS[m.outcome] : m.status}
                       </Badge>
-                      {!bounceOf(m) && m.status === "failed" && failureOf(m) ? (
+                      {!bounceOf(m) && m.outcome !== "held" && m.status === "failed" && failureOf(m) ? (
                         <p className="mt-0.5 max-w-[16rem] text-xs text-muted-foreground">
                           {failureOf(m)!.category === "outcome_unknown" ? "Held for review" : failureOf(m)!.label}
                           {failureOf(m)!.code ? ` · ${failureOf(m)!.code}` : ""}

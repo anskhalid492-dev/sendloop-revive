@@ -1,27 +1,31 @@
-import { MailMinus, MessageSquareReply, Send, ShieldAlert, Users, type LucideIcon } from "lucide-react";
-import {
-  LEAD_DELIVERY_LABELS,
-  LEAD_DELIVERY_STATES,
-  LEAD_DELIVERY_STYLES,
-  type LeadDeliveryState,
-} from "@/lib/campaign-model";
+import { MailCheck, MailMinus, MessageSquareReply, Send, ShieldAlert, Users, type LucideIcon } from "lucide-react";
+import { LEAD_OUTCOMES, LEAD_OUTCOME_LABELS, type LeadOutcome } from "@/lib/message-outcomes";
 import { Progress } from "@/components/ui/progress";
 import type { CampaignBuilder } from "./useCampaignBuilder";
 
 /** Solid fill colors for the proportional status bar. */
-const BAR_COLORS: Record<LeadDeliveryState, string> = {
+const BAR_COLORS: Record<LeadOutcome, string> = {
   not_contacted: "bg-muted-foreground/30",
-  queued: "bg-muted-foreground/40",
-  sent: "bg-primary/70",
-  delayed: "bg-amber-500/70",
-  delivered: "bg-sky-500/70",
-  opened: "bg-emerald-500/70",
-  clicked: "bg-emerald-600/80",
-  replied: "bg-emerald-700/80",
-  unsubscribed: "bg-amber-600/70",
-  complained: "bg-destructive/60",
+  queued: "bg-muted-foreground/50",
+  sending: "bg-primary/40",
+  accepted: "bg-primary/70",
+  delivered: "bg-chart-3",
   bounced: "bg-destructive/80",
   failed: "bg-destructive",
+  held: "bg-chart-5",
+  cancelled: "bg-muted-foreground/20",
+};
+
+const BADGE_STYLES: Record<LeadOutcome, string> = {
+  not_contacted: "bg-muted text-muted-foreground",
+  queued: "bg-muted text-muted-foreground",
+  sending: "bg-primary/10 text-primary",
+  accepted: "bg-primary/10 text-primary",
+  delivered: "bg-chart-3/15 text-foreground",
+  bounced: "bg-destructive/10 text-destructive",
+  failed: "bg-destructive/10 text-destructive",
+  held: "bg-chart-5/15 text-foreground",
+  cancelled: "bg-muted text-muted-foreground",
 };
 
 function pct(part: number, total: number) {
@@ -43,11 +47,12 @@ function Kpi({ label, value, sub, icon: Icon }: { label: string; value: string; 
 }
 
 export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
-  const { queue, delivery, steps, leadStates, leadTotal } = builder;
+  const { queue, delivery, steps, leadTotal } = builder;
   // Every headline number comes from the shared campaign stats source, so this
   // tab always matches the workspace Analytics page for the same campaign.
   const total = delivery?.totalLeads ?? queue?.total ?? 0;
   const sent = delivery?.sent ?? 0;
+  const delivered = delivery?.delivered ?? 0;
   // People emailed — the base for per-person rates, so multi-step sequences
   // never dilute them (one person receiving three steps is one contact).
   const contactedPeople = delivery?.contacted ?? 0;
@@ -55,27 +60,18 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
   const bounced = delivery?.bounced ?? 0;
   const unsubscribed = delivery?.unsubscribed ?? 0;
 
-
   const emailSteps = steps.filter((s) => s.stepType === "email");
   const byStep = (queue?.byStep ?? []).slice(0, Math.max(1, emailSteps.length));
 
-  // Counted from the live per-lead delivery state (derived from real message
-  // events), so this matches what the Leads tab and the activity feed show.
-  // Exact server-side per-lead counts over the whole audience.
-  //
-  // An accepted send that never bounced counts as delivered — the same rule the
-  // KPI cards, dashboard and Analytics page use — so the breakdown can never
-  // disagree with "Emails sent" above.
-  const statusCounts: Record<string, number> = { ...leadStates };
-  if (statusCounts["sent"]) {
-    statusCounts["delivered"] = (statusCounts["delivered"] ?? 0) + statusCounts["sent"];
-    statusCounts["sent"] = 0;
-  }
-  const breakdown = LEAD_DELIVERY_STATES.map((state) => ({
+  // Each lead once, by the current outcome of its own messages (same shared
+  // rules as every outcome counter). Engagement never moves a lead here.
+  const leadOutcomes = (delivery?.leadOutcomes ?? {}) as Partial<Record<LeadOutcome, number>>;
+  const breakdownTotal = LEAD_OUTCOMES.reduce((n, state) => n + (leadOutcomes[state] ?? 0), 0) || leadTotal;
+  const breakdown = LEAD_OUTCOMES.map((state) => ({
     state,
-    label: LEAD_DELIVERY_LABELS[state],
-    count: statusCounts[state] ?? 0,
-    share: pct(statusCounts[state] ?? 0, leadTotal),
+    label: LEAD_OUTCOME_LABELS[state],
+    count: leadOutcomes[state] ?? 0,
+    share: pct(leadOutcomes[state] ?? 0, breakdownTotal),
   }));
   const visibleBreakdown = breakdown.filter((row) => row.count > 0);
   const emptyBreakdown = breakdown.filter((row) => row.count === 0);
@@ -83,9 +79,10 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
   return (
     <div className="space-y-5">
       <h2 className="text-lg font-semibold">Analytics</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Kpi label="Leads Queued" value={total.toLocaleString()} icon={Users} />
-        <Kpi label="Emails Sent" value={sent.toLocaleString()} icon={Send} sub={`${pct(sent, total)}% of queue`} />
+        <Kpi label="Accepted by mail server" value={sent.toLocaleString()} icon={Send} sub={`${pct(sent, total)}% of queue`} />
+        <Kpi label="Confirmed delivered" value={delivered.toLocaleString()} icon={MailCheck} sub="Delivery receipts only" />
         <Kpi label="Replies" value={replied.toLocaleString()} icon={MessageSquareReply} sub={`${pct(replied, contactedPeople)}% reply rate`} />
         <Kpi label="Bounced" value={bounced.toLocaleString()} icon={ShieldAlert} sub={`${pct(bounced, sent)}% bounce rate`} />
         <Kpi
@@ -134,7 +131,7 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
           <div>
             <h3 className="font-semibold">Lead status breakdown</h3>
             <p className="text-sm text-muted-foreground">
-              Live state of every lead in this campaign, from real delivery events.
+              Each lead once, by the current outcome of its emails. Opens and replies are shown above.
             </p>
           </div>
           <span className="text-xs tabular-nums text-muted-foreground">
@@ -171,7 +168,7 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
                       {row.label}
                     </p>
                     <span
-                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${LEAD_DELIVERY_STYLES[row.state]}`}
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums ${BADGE_STYLES[row.state]}`}
                     >
                       {row.share}%
                     </span>

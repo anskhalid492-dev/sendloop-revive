@@ -1,4 +1,4 @@
-import { countMessageOutcomes, mergeMessageSnapshots, type MessageOutcomeCounts } from "@/lib/message-outcomes";
+import { countMessageOutcomes, leadOutcomeCounts, mergeMessageSnapshots, type LeadOutcome, type MessageOutcomeCounts } from "@/lib/message-outcomes";
 import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
 /**
  * The single source of truth for campaign statistics.
@@ -15,8 +15,12 @@ import { isHeldOutcomeUnknown } from "@/lib/campaign-send-phase";
  *
  * Definitions
  * -----------
- * - sent:        the email was accepted by the sending provider (`sent_at`)
- * - delivered:   explicit per-message delivery evidence only; acceptance is not delivery
+ * - sent:        cumulative: the email was accepted by the sending provider (`sent_at`)
+ * - accepted:    current outcome: accepted, with no later receipt, bounce or failure
+ * - delivered:   confirmed delivered — explicit per-message delivery evidence only;
+ *                provider acceptance is never counted as delivery
+ * - bounced:     recorded rejection of an email that was actually sent; a cancelled,
+ *                never-sent follow-up is never a bounce
  * - opened / clicked / replied / unsubscribed / complained: real provider signals
  * - bounced / failed: mutually exclusive terminal outcomes (a bounce is not a failure)
  * - scheduled:   pending work — a planned email that has not been sent or cancelled
@@ -46,6 +50,9 @@ export type CampaignStats = {
   queued: number;
   sending: number;
   sent: number;
+  /** Current outcome: accepted by the provider, no later receipt/bounce/failure. */
+  accepted: number;
+  /** Confirmed delivered: explicit per-message delivery evidence only. */
   delivered: number;
   opened: number;
   clicked: number;
@@ -61,7 +68,11 @@ export type CampaignStats = {
   failed: number;
   held: number;
   attempted: number;
+  /** Definitive never-accepted failures the engine may retry (never held). */
+  retryable: number;
   currentOutcomes?: MessageOutcomeCounts;
+  /** Each lead once, by the current outcome of its own messages. */
+  leadOutcomes?: Record<LeadOutcome, number>;
   remaining: number;
   /** Pending emails (all steps), de-duplicated per recipient+step. */
   scheduled: number;
@@ -83,6 +94,7 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     queued: n(row["queued"]),
     sending: n(row["sending"]),
     sent: n(row["sent"]),
+    accepted: n(row["accepted"]),
     delivered: n(row["delivered"]),
     opened: n(row["opened"]),
     clicked: n(row["clicked"]),
@@ -96,6 +108,7 @@ export function toCampaignStats(row: Record<string, unknown>): CampaignStats {
     failed: n(row["failed"]),
     held: n(row["held"]),
     attempted: n(row["attempted"]),
+    retryable: n(row["retryable"]),
     remaining: n(row["remaining"]),
     scheduled: n(row["scheduled"] ?? row["queued"]),
     cancelled: n(row["cancelled"]),
@@ -117,6 +130,7 @@ export const EMPTY_CAMPAIGN_STATS = (
   queued: 0,
   sending: 0,
   sent: 0,
+  accepted: 0,
   delivered: 0,
   opened: 0,
   clicked: 0,
@@ -130,6 +144,7 @@ export const EMPTY_CAMPAIGN_STATS = (
   failed: 0,
   held: 0,
   attempted: 0,
+  retryable: 0,
   remaining: 0,
   scheduled: 0,
   cancelled: 0,
@@ -244,6 +259,17 @@ export function bouncedLeadKeys(units: Iterable<Unit>): Set<string> {
   for (const u of units) if (unitBounceAt(u)) keys.add(u.leadKey);
   return keys;
 }
+
+/** A cancelled message that never reached a provider: never a bounce/failure/delivery. */
+export const unitCancelledUnsent = (u: Unit): boolean => u.cancelled && !u.sentAt;
+
+/** A recorded bounce of an email that was actually sent (message-level, by ID). */
+export const unitBounced = (u: Unit): boolean =>
+  !unitCancelledUnsent(u) && Boolean(u.signals.bounced_at || u.deliveryStatus === "bounced");
+
+/** Confirmed delivered: explicit per-message receipt, never acceptance alone. */
+export const unitConfirmedDelivered = (u: Unit): boolean =>
+  !unitCancelledUnsent(u) && !unitBounced(u) && Boolean(u.signals.delivered_at);
 
 const earlier = (a: string | null, b: string | null | undefined) => {
   if (!a) return b ?? null;
@@ -410,23 +436,17 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
     return row;
   };
 
-  // Bounced / unsubscribed / complained count PEOPLE, and a person counts when
-  // either a real provider signal exists OR their remaining queued emails were
-  // cancelled for that reason. Without the second half, a bounce or unsubscribe
-  // part-way through a sequence vanished into the Cancelled bucket. This is the
-  // same rule as `countOutcomeRecipients` in `@/lib/cancellation-reason` and the
-  // SQL aggregates.
+  // Bounced is a MESSAGE outcome (distinct sent message IDs with a recorded
+  // rejection); a cancelled, never-sent follow-up is never a bounce.
+  // Unsubscribed / complained are ENGAGEMENT and count people, including a
+  // person whose remaining mail was cancelled for that reason.
   const noRange = lo === -Infinity && hi === Infinity;
-  const bouncedLeads = new Set<string>();
   const unsubscribedLeads = new Set<string>();
   const complainedLeads = new Set<string>();
   for (const unit of units.values()) {
     const s = unit.signals;
     const reasonInWindow =
       noRange || inRange(unit.updatedAt) || inRange(unit.sentAt) || inRange(unit.signals.failed_at);
-    if (inRange(s.bounced_at) || (unit.cancelledReason === "recipient_bounced" && reasonInWindow)) {
-      bouncedLeads.add(unit.leadKey);
-    }
     if (
       inRange(s.unsubscribed_at) ||
       (unit.cancelledReason === "recipient_unsubscribed" && reasonInWindow)
@@ -444,8 +464,9 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   for (const unit of units.values()) {
     const s = unit.signals;
     const step = stepOf(unit.step);
-    const bounced = Boolean(s.bounced_at) || unit.deliveryStatus === "bounced";
-    const failed = !unit.held && !s.delivered_at && (Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt));
+    const bounced = unitBounced(unit);
+    const cancelledUnsent = unitCancelledUnsent(unit);
+    const failed = !cancelledUnsent && !unit.held && !s.delivered_at && (Boolean(s.failed_at) || (!bounced && unit.status === "failed" && !unit.sentAt));
 
     const sentInRange = inRange(unit.sentAt);
     if (sentInRange) {
@@ -453,9 +474,12 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       step.sent += 1;
       contacted.add(unit.leadKey);
     }
-    if (inRange(s.delivered_at) && !bounced) {
+    if (inRange(s.delivered_at) && unitConfirmedDelivered(unit)) {
       stats.delivered += 1;
       step.delivered += 1;
+    }
+    if (sentInRange && !bounced && !s.delivered_at && !unit.rejectedAfterSend) {
+      stats.accepted += 1;
     }
     if (inRange(s.opened_at)) {
       openedLeads.add(unit.leadKey);
@@ -481,7 +505,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.opened = openedLeads.size;
   stats.clicked = clickedLeads.size;
   stats.replied = repliedLeads.size;
-  stats.bounced = [...units.values()].filter(u => inRange(u.signals.bounced_at)).length;
+  stats.bounced = [...units.values()].filter(u => unitBounced(u) && inRange(u.signals.bounced_at ?? u.sentAt)).length;
   stats.unsubscribed = unsubscribedLeads.size;
   stats.complained = complainedLeads.size;
   // Current outcomes are distinct message IDs; engagement remains people-based.
@@ -490,11 +514,14 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
   stats.currentOutcomes = currentOutcomes;
   stats.held = currentOutcomes.held;
   stats.attempted = currentOutcomes.attempted;
+  stats.retryable = currentOutcomes.retryable;
+  stats.leadOutcomes = leadOutcomeCounts(outcomeRows, input.leads);
   if (noRange) {
     stats.sent = currentOutcomes.providerAccepted;
+    stats.accepted = currentOutcomes.accepted;
     stats.bounced = currentOutcomes.bounced;
-    // Delivered = accepted by the mail server and not bounced.
-    stats.delivered = Math.max(currentOutcomes.delivered, currentOutcomes.providerAccepted - currentOutcomes.bounced);
+    // Confirmed delivery needs per-message evidence; acceptance is never delivery.
+    stats.delivered = currentOutcomes.delivered;
     stats.failed = currentOutcomes.failed;
     stats.scheduled = currentOutcomes.queued;
     stats.sending = currentOutcomes.sending;
@@ -549,11 +576,9 @@ export function computeTimeseries(
 
   const countedUnsub = new Set<string>();
   for (const u of all) {
-    const bouncedAt = u.signals.bounced_at;
+    const bouncedAt = unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null;
     at(u.sentAt, "sent");
-    if (!u.signals.bounced_at) {
-      at(u.signals.delivered_at, "delivered");
-    }
+    if (unitConfirmedDelivered(u)) at(u.signals.delivered_at, "delivered");
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
@@ -633,12 +658,12 @@ export function computeAccountTotals(
       };
       rows.set(u.accountId, row);
     }
-    const bouncedAt = u.signals.bounced_at;
+    const bouncedAt = unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null;
     if (inRange(u.sentAt)) {
       row.sent += 1;
 
     }
-    if (inRange(u.signals.delivered_at) && !u.signals.bounced_at) {
+    if (inRange(u.signals.delivered_at) && unitConfirmedDelivered(u)) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);
@@ -647,8 +672,8 @@ export function computeAccountTotals(
     if (inRange(bouncedAt)) {
       row.bounced += 1;
     }
-    if (!u.held && !u.signals.bounced_at && !u.signals.delivered_at && inRange(u.signals.failed_at)) row.failed += 1;
-    if (u.held && !u.signals.bounced_at && !u.signals.delivered_at) row.held = (row.held ?? 0) + 1;
+    if (!unitCancelledUnsent(u) && !u.held && !unitBounced(u) && !u.signals.delivered_at && inRange(u.signals.failed_at)) row.failed += 1;
+    if (u.held && !unitBounced(u) && !u.signals.delivered_at) row.held = (row.held ?? 0) + 1;
     const unsubAt = unitUnsubscribeAt(u);
     if (inRange(unsubAt) && addPersonOnce(unsubCounted, u.accountId, u.leadKey)) {
       row.unsubscribed += 1;
@@ -656,7 +681,7 @@ export function computeAccountTotals(
   }
   for (const row of rows.values()) {
     // Confirmed per-message receipts only.
-    row.delivered = Math.max(confirmedDelivered.get(row.accountId) ?? 0, row.sent - row.bounced);
+    row.delivered = confirmedDelivered.get(row.accountId) ?? 0;
     row.opens = openers.get(row.accountId)?.size ?? 0;
     row.clicks = clickers.get(row.accountId)?.size ?? 0;
     row.replies = repliers.get(row.accountId)?.size ?? 0;

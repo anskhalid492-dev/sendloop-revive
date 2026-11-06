@@ -35,6 +35,9 @@ export type CampaignLeadRow = {
   lead_id: string;
   lead: CampaignLeadFields | null;
   deliveryState: string;
+  /** Current message outcome (shared rules); engagement is reported separately. */
+  outcome: string;
+  engagement: { opened: boolean; replied: boolean; unsubscribed: boolean };
   lastEventAt: string | null;
 };
 
@@ -227,6 +230,8 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
         .filter((r) => r.leads);
     }
     let live = new Map<string, { state: string; at: string | null }>();
+    let outcomes = new Map<string, string>();
+    const engagement = new Map<string, { opened: boolean; replied: boolean; unsubscribed: boolean }>();
     if (recipients.length) {
       const { fetchByIds } = await import("@/lib/supabase-batch");
       const { aggregateDeliveryStates } = await import("@/lib/campaign-delivery-state");
@@ -236,12 +241,23 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
           context.supabase
             .from("campaign_messages")
             .select(
-              "recipient_id, lead_id, status, delivery_status, cancelled_reason, updated_at, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at",
+              "id, recipient_id, lead_id, status, delivery_status, cancelled_reason, updated_at, scheduled_at, sent_at, delivered_at, delayed_at, opened_at, clicked_at, replied_at, unsubscribed_at, complained_at, bounced_at, failed_at, last_event_at, last_error, attempts",
             )
             .eq("campaign_id", data.campaignId)
             .in("recipient_id", ids),
       );
       live = aggregateDeliveryStates(messages);
+      const { leadOutcomeByKey } = await import("@/lib/message-outcomes");
+      outcomes = leadOutcomeByKey(messages as never);
+      for (const m of messages) {
+        const key = String(m["recipient_id"] ?? "");
+        if (!key) continue;
+        const e = engagement.get(key) ?? { opened: false, replied: false, unsubscribed: false };
+        if (m["opened_at"]) e.opened = true;
+        if (m["replied_at"]) e.replied = true;
+        if (m["unsubscribed_at"] || m["cancelled_reason"] === "recipient_unsubscribed") e.unsubscribed = true;
+        engagement.set(key, e);
+      }
     }
 
     const rows: CampaignLeadRow[] = recipients.map(({ leads, ...recipient }) => {
@@ -250,6 +266,8 @@ export const getCampaignLeads = createServerFn({ method: "POST" })
         ...recipient,
         lead: leads,
         deliveryState: hit?.state ?? "not_contacted",
+        outcome: outcomes.get(recipient.id) ?? "not_contacted",
+        engagement: engagement.get(recipient.id) ?? { opened: false, replied: false, unsubscribed: false },
         lastEventAt: hit?.at ?? recipient.last_sent_at ?? null,
       };
     });

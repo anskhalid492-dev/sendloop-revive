@@ -128,7 +128,8 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
     ).length;
     // Bounced rows keep status "failed" historically but are identified by
     // bounced_at. They are reported separately and never counted as failed.
-    const bounced = messages.filter((m) => m.bounced_at != null).length;
+    // A cancelled, never-sent message is never a bounce.
+    const bounced = messages.filter((m) => m.bounced_at != null && !(m.status === "cancelled" && !m.sent_at)).length;
     const failed = messages.filter((m) => m.status === "failed" && m.bounced_at == null).length;
     const confirmedDelivered = messages.filter((m) => m.delivered_at != null && m.bounced_at == null).length;
     const opened = new Set(
@@ -143,7 +144,8 @@ export function buildCampaignOverview(input: Inputs): CampaignOverviewRow[] {
         .filter((m) => m.status === "sent" || m.sent_at)
         .map((m) => m.recipient_id ?? m.lead_id ?? m.to_email?.toLowerCase() ?? `${c.id}:sent`),
     ).size;
-    const reached = Math.max(confirmedDelivered, messages.filter((m) => (m.status === "sent" || m.sent_at) && m.bounced_at == null).length);
+    // Confirmed delivery only; provider acceptance is never counted as delivered.
+    const reached = confirmedDelivered;
 
     const replyKeys = new Set(
       input.replies

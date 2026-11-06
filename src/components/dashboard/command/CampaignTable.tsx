@@ -44,7 +44,7 @@ const HEADERS = [
   "Status",
   "Leads",
   "Sent",
-  "Delivered",
+  "Confirmed delivered",
   "Replies",
   "Positive",
   "Meetings",
@@ -130,7 +130,7 @@ export function CampaignTable({
               <td className="px-4 py-3 text-right tabular-nums">{row.positive.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums">{row.meetings.toLocaleString()}</td>
               <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">
-                {pct(row.bounced, row.delivered + row.bounced).toFixed(1)}%
+                {pct(row.bounced, row.sentInRange ?? row.sentLifetime).toFixed(1)}%
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">
                 {nextRun(row.nextRunAt)}

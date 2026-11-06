@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { deliveredCount } from "@/lib/engagement-rates";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import { buildCampaignUpdatePatch } from "@/lib/campaign-update-patch";
 
@@ -391,14 +390,17 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
+        accepted: canonical.accepted,
         delivered: canonical.delivered,
         held: canonical.held,
+        leadOutcomes: canonical.leadOutcomes,
         attempted: canonical.attempted,
         currentOutcomes: canonical.currentOutcomes,
         delayed: num(deliveryCounts["delayed"]),
         opened: num(deliveryCounts["opened"]),
         clicked: num(deliveryCounts["clicked"]),
         replied: num(deliveryCounts["replied"]),
+        positiveReplied: canonical.positiveReplied,
         bounced: num(deliveryCounts["bounced"]),
         complained: num(deliveryCounts["complained"]),
         unsubscribed: num(deliveryCounts["unsubscribed"]),
@@ -426,7 +428,8 @@ export const getCampaign = createServerFn({ method: "GET" })
         ...runStatus,
         dailyQuota,
         sentThisRun: sentTodayCount,
-        retryableFailures: num(summary["retryable_failures"]),
+        // Never held: computed from the shared message-outcome rules, not the legacy RPC.
+        retryableFailures: canonical.retryable,
       },
     };
   });

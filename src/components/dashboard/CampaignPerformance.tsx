@@ -48,7 +48,7 @@ export function CampaignPerformance({
                 <th className="px-3 py-2.5 font-medium">Status</th>
                 <th className="px-3 py-2.5 text-right font-medium">Leads</th>
                 <th className="px-3 py-2.5 text-right font-medium">Sent</th>
-                <th className="px-3 py-2.5 text-right font-medium">Delivered</th>
+                <th className="px-3 py-2.5 text-right font-medium">Confirmed delivered</th>
                 <th className="px-3 py-2.5 text-right font-medium">Replies</th>
                 <th className="px-3 py-2.5 text-right font-medium">Reply rate</th>
                 <th className="px-3 py-2.5 text-right font-medium">Positive</th>

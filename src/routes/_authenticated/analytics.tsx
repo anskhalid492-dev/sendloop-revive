@@ -192,7 +192,8 @@ function AnalyticsPage() {
     const header = [
       "Campaign",
       "Status",
-      "Sent",
+      "Sent (accepted by mail server)",
+      "Accepted (no receipt or bounce yet)",
       "Confirmed delivered",
       "Opens",
       "Clicks",
@@ -208,6 +209,7 @@ function AnalyticsPage() {
       r.name,
       r.status,
       r.sent,
+      r.accepted ?? 0,
       r.delivered,
       r.opens,
       r.clicks,
@@ -241,10 +243,10 @@ function AnalyticsPage() {
           label: "Emails Sent", icon: Mail, tone: "bg-primary/10 text-primary",
           value: formatCount(current.sent),
           delta: deltaCount(current.sent, previous?.sent ?? 0),
-          sub: null,
+          sub: `Accepted by mail server · ${formatCount(current.accepted ?? 0)} awaiting receipt`,
         },
         {
-          // Estimated delivered = sent minus confirmed bounces (same basis as the rates).
+          // Confirmed delivered = explicit per-message receipts only; never acceptance.
           label: "Confirmed Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
           value: deliveryPresentation(current).value,
           delta: previous
@@ -253,7 +255,7 @@ function AnalyticsPage() {
                 previous.delivered,
               )
             : null,
-          sub: null,
+          sub: "Delivery receipts only",
         },
         {
           label: "Open Rate", icon: MailOpen, tone: "bg-chart-1/10 text-chart-1",

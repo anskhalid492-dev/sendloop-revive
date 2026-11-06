@@ -4,6 +4,9 @@
  * sequence and variant tables can never disagree with the headline totals.
  */
 import {
+  unitBounced,
+  unitCancelledUnsent,
+  unitConfirmedDelivered,
   unitUnsubscribeAt,
   type Unit,
 } from "@/lib/campaign-stats";
@@ -12,6 +15,9 @@ export type SequenceTotals = {
   sent: number;
   /** Unique people emailed in this scope — the people-based rate base. */
   contacted: number;
+  /** Current outcome: accepted with no later receipt, bounce or failure. */
+  accepted: number;
+  /** Confirmed delivered: per-message receipts only. */
   delivered: number;
   opens: number;
   clicks: number;
@@ -38,6 +44,7 @@ export function emptySequenceTotals(): SequenceTotals {
   return {
     sent: 0,
     contacted: 0,
+    accepted: 0,
     delivered: 0,
     opens: 0,
     clicks: 0,
@@ -78,9 +85,10 @@ function accumulate(
   inRange: (iso: string | null) => boolean,
   counted: PeopleCounted,
 ) {
-  // Bounce / unsubscribe use the ONE shared rule (signal or cancelled reason),
-  // and a bounce applies to the whole person, not just the row carrying it.
-  const bouncedAt = unit.signals.bounced_at;
+  // Bounced is a message outcome of a SENT email; a cancelled, never-sent
+  // follow-up is never a bounce. Unsubscribes are engagement (people).
+  const bounced = unitBounced(unit);
+  const bouncedAt = bounced ? (unit.signals.bounced_at ?? unit.sentAt) : null;
   if (inRange(unit.sentAt)) {
     target.sent += 1;
     // People-based rate base: one person emailed counts once, however many
@@ -89,24 +97,16 @@ function accumulate(
       counted.contacted.add(unit.leadKey);
       target.contacted += 1;
     }
+    if (!bounced && !unit.signals.delivered_at && !unit.rejectedAfterSend) target.accepted += 1;
   }
   // Delivery requires this message's actual receipt.
-  if (
-    inRange(unit.signals.delivered_at) &&
-    !unit.signals.bounced_at
-  ) {
-    target.delivered += 1;
-  }
+  if (inRange(unit.signals.delivered_at) && unitConfirmedDelivered(unit)) target.delivered += 1;
   if (inRange(unit.signals.opened_at)) target.opens += 1;
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;
-  // One bounced person = one bounce, exactly like the campaign totals, which
-  // count bounced/unsubscribed leads as sets of people.
-  if (inRange(bouncedAt)) {
-    target.bounced += 1;
-  }
-  if (!unit.held && !unit.signals.delivered_at && !unit.signals.bounced_at && inRange(unit.signals.failed_at)) target.failed += 1;
-  if (unit.held && !unit.signals.bounced_at && !unit.signals.delivered_at) target.held += 1;
+  if (inRange(bouncedAt)) target.bounced += 1;
+  if (!unitCancelledUnsent(unit) && !unit.held && !unit.signals.delivered_at && !bounced && inRange(unit.signals.failed_at)) target.failed += 1;
+  if (unit.held && !bounced && !unit.signals.delivered_at) target.held += 1;
   if (inRange(unitUnsubscribeAt(unit)) && !counted.unsubscribed.has(unit.leadKey)) {
     counted.unsubscribed.add(unit.leadKey);
     target.unsubscribed += 1;

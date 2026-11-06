@@ -93,7 +93,7 @@ export function MailboxTable({ rows }: { rows: MailboxRow[] }) {
       <table className="w-full min-w-[820px] text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/40 text-left">
-            {["Mailbox", "Status", "Sent", "Delivered", "Bounces", "Replies", "12h capacity"].map(
+            {["Mailbox", "Status", "Sent", "Confirmed delivered", "Bounces", "Replies", "12h capacity"].map(
               (h, i) => (
                 <th
                   key={h}

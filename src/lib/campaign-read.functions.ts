@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { deliveredCount } from "@/lib/engagement-rates";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
@@ -223,14 +222,17 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
+        accepted: canonical.accepted,
         delivered: canonical.delivered,
         held: canonical.held,
+        leadOutcomes: canonical.leadOutcomes,
         attempted: canonical.attempted,
         currentOutcomes: canonical.currentOutcomes,
         delayed: numberValue(deliveryCounts["delayed"]),
         opened: numberValue(deliveryCounts["opened"]),
         clicked: numberValue(deliveryCounts["clicked"]),
         replied: numberValue(deliveryCounts["replied"]),
+        positiveReplied: canonical.positiveReplied,
         bounced: numberValue(deliveryCounts["bounced"]),
         complained: numberValue(deliveryCounts["complained"]),
         unsubscribed: numberValue(deliveryCounts["unsubscribed"]),
@@ -255,7 +257,8 @@ export const getCampaign = createServerFn({ method: "GET" })
         ...runStatus,
         dailyQuota,
         sentThisRun: sentTodayCount,
-        retryableFailures: numberValue(summary["retryable_failures"]),
+        // Never held: computed from the shared message-outcome rules, not the legacy RPC.
+        retryableFailures: canonical.retryable,
       },
     };
     logPhase("transform", phaseStartedAt);

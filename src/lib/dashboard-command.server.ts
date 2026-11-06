@@ -13,7 +13,7 @@
  *    is never rendered as "Completed".
  *  - Mailbox capacity uses the rolling 12-hour window model.
  */
-import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
+import { campaignRunStatus } from "@/lib/campaign-run-state";
 import { zonedStartOfDay } from "@/lib/campaign-schedule";
 import {
   MAILBOX_WINDOW_HOURS,
@@ -41,7 +41,7 @@ import {
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
 import { mailboxActivityCopy } from "@/lib/activity-copy";
-import { messageOutcome } from "@/lib/message-outcomes";
+import { isRetryableMessage, messageOutcome } from "@/lib/message-outcomes";
 import { outcomeRecipientKey } from "@/lib/cancellation-reason";
 
 type AnyClient = {
@@ -199,7 +199,10 @@ supabase
   const bounceAtByCampaign = new Map<string, Map<string, number>>();
   const bounceAtByAccount = new Map<string, Map<string, number>>();
   for (const m of messageRows) {
-    const at = ts(m["bounced_at"]);
+    // Message-level bounces of SENT emails only (shared outcome rules); a
+    // cancelled, never-sent follow-up is never a bounce.
+    if (messageOutcome(m as never) !== "bounced") continue;
+    const at = ts(m["bounced_at"]) ?? ts(m["sent_at"]);
     if (at === null) continue;
     const key = String(m["id"]);
     bounceAtByPerson.set(key, at);
@@ -209,7 +212,6 @@ supabase
       entries.set(key, at); scope.set(String(id), entries);
     }
   }
-  const personBounced = (m: Row) => Boolean(m["bounced_at"]);
   const countBounced = (scope: Map<string, number> | undefined, from: number, to: number) => {
     if (!scope) return 0;
     let total = 0;
@@ -261,9 +263,10 @@ supabase
     const cid = m["campaign_id"] as string | null;
     if (!cid) continue;
     const status = String(m["status"] ?? "");
+    // Held-for-review messages are never owed work: they are never resent.
     const open =
       ["pending", "scheduled", "processing", "queued"].includes(status) ||
-      (status === "failed" && isRetryableFailure(m["last_error"] as string | null));
+      isRetryableMessage(m as never);
     if (open) pendingMessagesPerCampaign.set(cid, (pendingMessagesPerCampaign.get(cid) ?? 0) + 1);
   }
   for (const r of recipientRows) {
@@ -299,7 +302,7 @@ supabase
     return {
       sent: sentMsgs.length,
       // Provider receipts, never inferred from acceptance.
-      delivered: sentMsgs.filter(m => !(m as Record<string, unknown>)["bounced_at"]).length,
+      delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,
       meetings: meetingRows.filter((l) => within(l["last_activity_at"], from, to)).length,
@@ -329,13 +332,7 @@ supabase
     b.sent += 1;
     if (rejectedAfterSend(m)) b.rejected = (b.rejected ?? 0) + 1;
   }
-  // Delivered per day = that day's sends minus that day's bounced people.
-  const bouncesPerDay = new Map<string, number>();
-  for (const at of bounceAtByPerson.values()) {
-    if (at < rangeStart) continue;
-    const key = new Date(at).toISOString().slice(0, 10);
-    bouncesPerDay.set(key, (bouncesPerDay.get(key) ?? 0) + 1);
-  }
+  // Confirmed delivered per day: per-message receipts only.
   for (const [key, b] of buckets) {
     b.delivered = messageRows.filter(m => m["delivered_at"] && String(m["delivered_at"]).slice(0, 10) === key && messageOutcome(m as never) === "delivered").length;
     delete b.rejected;
@@ -411,6 +408,7 @@ supabase
       leads: leadsPerCampaign.get(id) ?? 0,
       sentLifetime: sentMine.length,
       sentToday,
+      sentInRange: mine.filter(m => within(m["sent_at"], rangeStart, nowMs + 1)).length,
       delivered: mine.filter(m => within(m["delivered_at"], rangeStart, nowMs + 1) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplies,
       positive,
@@ -621,13 +619,8 @@ supabase
 
 
   /* -------------------------------------------------- actions & insights */
-  const retryableFailures = messageRows.filter(
-    (m) =>
-      m["status"] === "failed" &&
-      !m["sent_at"] &&
-      !personBounced(m) &&
-      isRetryableFailure((m["last_error"] as string | null) ?? null),
-  ).length;
+  // Same shared rule as the campaign page: never held, bounced or accepted.
+  const retryableFailures = messageRows.filter((m) => isRetryableMessage(m as never)).length;
 
   const leadsTotal = leadsCountRes.count ?? 0;
   const unreadReplies = (conversationsRes.data ?? []).length;

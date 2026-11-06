@@ -352,7 +352,7 @@ export async function campaignStats(ctx: ApiContext) {
   const people = { contacted: stats.contacted, bounced: stats.bounced };
   return { data: {
     object: "campaign_stats", campaign_id: id, status: campaign.status, recipients: stats.leads,
-    totals: { sent: stats.sent, delivered: stats.delivered, scheduled: stats.scheduled, sending: stats.sending,
+    totals: { sent: stats.sent, accepted: stats.accepted, delivered: stats.delivered, scheduled: stats.scheduled, sending: stats.sending,
       failed: stats.failed, held: stats.held, attempted: stats.attempted, cancelled: stats.cancelled,
       bounced: stats.bounced, opened: stats.opened, clicked: stats.clicked, replied: stats.replied, unsubscribed: stats.unsubscribed },
     current_outcomes: stats.currentOutcomes,

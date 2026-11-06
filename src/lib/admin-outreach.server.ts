@@ -72,7 +72,7 @@ export type AdminCampaignRow = {
   leads: number;
   /** Accepted by the mailbox/provider. */
   sent: number;
-  /** Estimate: sent minus bounces of those sends (no SMTP delivery receipts). */
+  /** Confirmed delivered: explicit per-message delivery receipts only. */
   delivered: number;
   deliveryRate: number | null;
   opens: number;
@@ -285,13 +285,12 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   const rows = campaigns.map((c): AdminCampaignRow => {
     const owner = owners[c.created_by] ?? { email: null, name: null };
     const t = totals[c.id] ?? emptyTotals();
-    // Bounce events without a message id cannot be matched to a send; they
-    // only add to bounces when they do not exceed recorded sends.
-    const extraBounces = Math.min(bounceEventsNoMessage[c.id] ?? 0, Math.max(0, t.sent - t.bouncedAfterSend));
+    // Message-ID based only: bounce events that cannot be matched to a sent
+    // message are never added to the bounce count.
     const metrics = {
       ...t,
-      bounced: t.bounced + extraBounces,
-      bouncedAfterSend: t.bouncedAfterSend + extraBounces,
+      bounced: t.bounced,
+      bouncedAfterSend: t.bouncedAfterSend,
       leads: recipientCounts[c.id] ?? 0,
       contacted: contactedPeople[c.id]?.size ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
@@ -749,14 +748,29 @@ export async function getAdminCampaignInsights(campaignId: string, days = 30) {
       .in("id", campaign.sending_account_ids?.length ? campaign.sending_account_ids : ["00000000-0000-0000-0000-000000000000"]),
   ]);
 
-  const unknown = unknownAll;
+  // One shared, distinct-message-ID classification (src/lib/message-outcomes.ts),
+  // so Admin matches the customer's campaign, dashboard, queue and exports.
+  void [sentAll, sentBounced, rejectedBounced, failedAll, failedBounced, unknownAll, unknownSent, unknownFailedNotBounced, queued];
+  const { countMessageOutcomes } = await import("@/lib/message-outcomes");
+  const outcomeRows = await fetchAllRows<any>(() =>
+    db()
+      .from("campaign_messages")
+      .select("id, status, delivery_status, sent_at, delivered_at, bounced_at, failed_at, last_error, attempts, updated_at")
+      .eq("campaign_id", campaignId)
+      .order("id", { ascending: true }),
+  );
+  const outcomes = countMessageOutcomes(outcomeRows);
   const totals = {
-    sent: sentAll - unknownSent,
-    bouncedAfterSend: sentBounced,
-    bounced: sentBounced + rejectedBounced,
-    failed: Math.max(0, failedAll - failedBounced - unknownFailedNotBounced),
-    unknown,
-    queued,
+    sent: outcomes.providerAccepted,
+    accepted: outcomes.accepted,
+    delivered: outcomes.delivered,
+    bouncedAfterSend: outcomes.bounced,
+    bounced: outcomes.bounced,
+    failed: outcomes.failed,
+    unknown: outcomes.held,
+    queued: outcomes.queued + outcomes.sending,
+    cancelled: outcomes.cancelled,
+    total: outcomes.total,
   };
 
   const events: { at: string | null; kind: "sent" | "bounced" | "failed" }[] = [];

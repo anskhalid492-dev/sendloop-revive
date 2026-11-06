@@ -9,8 +9,8 @@
  *   Bounced   – `bounced_at` set, or a bounce engagement event for the message.
  *   Sent      – accepted by the mailbox/provider (`status = 'sent'`).
  *   Failed    – `status = 'failed'` that is neither bounced nor unknown.
- *   Delivered – estimate: sent minus bounces of those sent emails (the shared
- *               `deliveredCount` rule). No SMTP provider confirms delivery.
+ *   Delivered – confirmed only: explicit per-message delivery receipts.
+ *               Acceptance is never counted as delivery.
  *
  * Rates use the shared helpers in `engagement-rates.ts`.
  */
@@ -37,6 +37,8 @@ export function classifyMessage(
   m: MessageFacts,
   opts: { unknown?: boolean; bounceEvent?: boolean } = {},
 ): MessageClass {
+  // Shared outcome rule: a cancelled, never-sent message is never a bounce.
+  if (m.status === "cancelled" && !m.sent_at) return "other";
   const bounced = Boolean(m.bounced_at) || Boolean(opts.bounceEvent);
   if (bounced) return (m.sent_at || m.status === "sent") ? "sent_bounced" : "bounced_rejected";
   if (m.delivered_at) return "sent";

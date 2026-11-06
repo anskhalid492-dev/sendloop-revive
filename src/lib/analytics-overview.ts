@@ -1,4 +1,4 @@
-import { collapseMessageUnits, computeAccountTotals, type CampaignMessageRow, type MessageEventSignals, type Unit } from "@/lib/campaign-stats";
+import { collapseMessageUnits, computeAccountTotals, unitBounced, unitCancelledUnsent, unitConfirmedDelivered, type CampaignMessageRow, type MessageEventSignals, type Unit } from "@/lib/campaign-stats";
 import type { AnalyticsSummary, AnalyticsTimeseriesPoint } from "@/lib/analytics-model";
 
 export const ENGAGEMENT_SERIES = [
@@ -25,25 +25,28 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const people = (predicate: (u: Unit) => boolean) => new Set(units.filter(predicate).map(u => u.leadKey)).size;
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
-  const confirmed = units.filter(u => inRange(u.signals.delivered_at) && !u.signals.bounced_at ).length;
+  // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
+  const confirmed = units.filter(u => unitConfirmedDelivered(u) && inRange(u.signals.delivered_at)).length;
+  const bouncedUnits = units.filter(u => unitBounced(u) && inRange(u.signals.bounced_at ?? u.sentAt));
   // Legacy failures have a known outcome but no trustworthy occurrence date.
   // Keep them visible separately; never assign them to a period via updated_at.
-  const undatedFailed = units.filter(u => !u.held && !u.sentAt && !u.signals.bounced_at && !u.signals.delivered_at && u.status === "failed" && !u.signals.failed_at).length;
+  const undatedFailed = units.filter(u => !unitCancelledUnsent(u) && !u.held && !u.sentAt && !unitBounced(u) && !u.signals.delivered_at && u.status === "failed" && !u.signals.failed_at).length;
   return {
     sent,
     contacted: people(u => inRange(u.sentAt)),
-    delivered: Math.max(confirmed, sent - units.filter(u => inRange(u.sentAt) && u.signals.bounced_at).length),
+    delivered: confirmed,
+    accepted: units.filter(u => inRange(u.sentAt) && !unitBounced(u) && !u.signals.delivered_at && !u.rejectedAfterSend).length,
     deliveryComplete: sent > 0 && units.filter(u => inRange(u.sentAt) && Boolean(u.signals.delivered_at || u.signals.bounced_at)).length === sent,
     // A mutable updated_at must not move an old failure into this window.
     // Includes sends the provider rejected after accepting them (dated by failed_at).
-    held: units.filter(u => u.held && !u.signals.bounced_at && !u.signals.delivered_at).length,
-    failed: units.filter(u => !u.held && !u.signals.delivered_at && !u.signals.bounced_at && inRange(u.signals.failed_at) && (!u.sentAt || u.rejectedAfterSend === true)).length,
+    held: units.filter(u => u.held && !unitBounced(u) && !u.signals.delivered_at).length,
+    failed: units.filter(u => !unitCancelledUnsent(u) && !u.held && !u.signals.delivered_at && !unitBounced(u) && inRange(u.signals.failed_at) && (!u.sentAt || u.rejectedAfterSend === true)).length,
     undatedFailed,
     failureHistoryIncomplete: undatedFailed > 0,
     opens: people(u => inRange(u.signals.opened_at)),
     clicks: people(u => inRange(u.signals.clicked_at)),
     replies: people(u => inRange(u.signals.replied_at)),
-    bounced: units.filter(u => inRange(u.signals.bounced_at)).length,
+    bounced: bouncedUnits.length,
     unsubscribed: accounts.reduce((n, a) => n + a.unsubscribed, 0),
   };
 }
@@ -57,7 +60,7 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
     points.set(at, { bucket: new Date(at).toISOString(), sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, positiveReplies: 0, bounced: 0, unsubscribed: 0 });
   }
   for (const u of units) {
-    for (const [field, iso] of Object.entries({ sent: u.sentAt, delivered: u.signals.bounced_at ? null : u.signals.delivered_at, opens: u.signals.opened_at, clicks: u.signals.clicked_at, replies: u.signals.replied_at, bounced: u.signals.bounced_at, unsubscribed: u.signals.unsubscribed_at })) {
+    for (const [field, iso] of Object.entries({ sent: u.sentAt, delivered: unitConfirmedDelivered(u) ? u.signals.delivered_at : null, opens: u.signals.opened_at, clicks: u.signals.clicked_at, replies: u.signals.replied_at, bounced: unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null, unsubscribed: u.signals.unsubscribed_at })) {
       const at = iso ? Date.parse(iso) : NaN;
       if (at < +from || at >= +to || !Number.isFinite(at)) continue;
       const key = Math.floor(at / step) * step;

@@ -482,13 +482,13 @@ function CampaignDetail({
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Sent" value={t ? num(t.sent) : "…"} hint="Accepted by mailbox" />
         <StatCard
-          label="Delivered (est.)"
-          value={t ? (t.sent ? num(Math.max(0, t.sent - t.bouncedAfterSend)) : "—") : "…"}
-          hint="Sent − bounces; no SMTP receipts"
+          label="Confirmed delivered"
+          value={t ? num(t.delivered ?? 0) : "…"}
+          hint="Delivery receipts only"
         />
         <StatCard label="Bounced" value={t ? num(t.bounced) : "…"} />
         <StatCard label="Failed" value={t ? num(t.failed) : "…"} hint="Excludes bounces and unknown" />
-        <StatCard label="Unknown outcome" value={t ? num(t.unknown) : "…"} hint="Held, never resent" />
+        <StatCard label="Held for review" value={t ? num(t.unknown) : "…"} hint="Not failed; never resent" />
         <StatCard label="Positive replies" value={num(data.stats.positiveReplies)} />
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
