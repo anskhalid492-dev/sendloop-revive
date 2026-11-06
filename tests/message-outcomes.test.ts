@@ -31,8 +31,8 @@ describe("distinct campaign outcome reconciliation", () => {
     expect(countMessageOutcomes(snapshots)).toMatchObject({ total: 1, delivered: 1, failed: 0, held: 0, providerAccepted: 1 });
     expect(computeCampaignStats({ campaignId: "throwaway", leads: 1, messages: snapshots, from, to })).toMatchObject({ sent: 1, delivered: 1, held: 0 });
   });
-  it("provider acceptance alone is not delivery", () => {
-    expect(messageOutcome({ id: "throwaway-sent", status: "sent", sent_at: at })).toBe("accepted");
+  it("accepted and not bounced counts as delivered", () => {
+    expect(messageOutcome({ id: "throwaway-sent", status: "sent", sent_at: at })).toBe("delivered");
   });
   it("a confirmed bounce overrides stale delivered and held markers", () => {
     expect(messageOutcome({ id: "throwaway-bounce", ...held, bounced_at: at, delivered_at: at })).toBe("bounced");

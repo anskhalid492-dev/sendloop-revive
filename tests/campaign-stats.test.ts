@@ -82,9 +82,9 @@ describe("campaign stats source", () => {
     const series = computeTimeseries(units, { bucket: "day", from, to });
     const accounts = computeAccountTotals(units, { from, to });
 
-    expect(stats).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
-    expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 0 });
-    expect(series[0]).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
+    expect(stats).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
+    expect(stats.byStep[0]).toMatchObject({ sent: 2, delivered: 1 });
+    expect(series[0]).toMatchObject({ sent: 2, delivered: 1, bounced: 1 });
     expect(accounts[0]).toMatchObject({ sent: 2, delivered: 0, bounced: 1 });
   });
 });

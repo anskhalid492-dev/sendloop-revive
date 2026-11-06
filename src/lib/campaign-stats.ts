@@ -269,7 +269,7 @@ export const unitBounced = (u: Unit): boolean =>
 
 /** Confirmed delivered: explicit per-message receipt, never acceptance alone. */
 export const unitConfirmedDelivered = (u: Unit): boolean =>
-  !unitCancelledUnsent(u) && !unitBounced(u) && !u.rejectedAfterSend && Boolean(u.signals.delivered_at || u.sentAt);
+  !unitCancelledUnsent(u) && !unitBounced(u) && (Boolean(u.signals.delivered_at) || (Boolean(u.sentAt) && !u.rejectedAfterSend));
 /** When a delivered unit counts: its receipt, else its acceptance time. */
 export const unitDeliveredAt = (u: Unit): string | null => u.signals.delivered_at ?? u.sentAt ?? null;
 
