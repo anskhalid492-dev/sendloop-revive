@@ -26,7 +26,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
   // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
-  const confirmed = units.filter(u => unitConfirmedDelivered(u) && inRange(u.signals.delivered_at)).length;
+  const confirmed = units.filter(u => unitConfirmedDelivered(u) && inRange(u.signals.delivered_at ?? u.sentAt)).length;
   const bouncedUnits = units.filter(u => unitBounced(u) && inRange(u.signals.bounced_at ?? u.sentAt));
   // Legacy failures have a known outcome but no trustworthy occurrence date.
   // Keep them visible separately; never assign them to a period via updated_at.

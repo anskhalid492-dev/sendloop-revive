@@ -80,7 +80,7 @@ export function KpiGrid({
     },
     {
       key: "delivered",
-      label: "Confirmed delivered",
+      label: "Delivered",
       value: c?.delivered ?? 0,
       previous: p?.delivered ?? null,
     },

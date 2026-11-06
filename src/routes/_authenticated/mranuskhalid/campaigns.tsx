@@ -482,7 +482,7 @@ function CampaignDetail({
       <div className="grid gap-3 sm:grid-cols-3">
         <StatCard label="Sent" value={t ? num(t.sent) : "…"} hint="Accepted by mailbox" />
         <StatCard
-          label="Confirmed delivered"
+          label="Delivered"
           value={t ? num(t.delivered ?? 0) : "…"}
           hint="Delivery receipts only"
         />

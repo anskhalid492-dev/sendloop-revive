@@ -389,8 +389,9 @@ export const getDashboardPulse = createServerFn({ method: "GET" })
 
     }
     for (const m of messageRows) {
-      if (m.delivered_at && !m.bounced_at && inWindow(m.delivered_at, start)) {
-        const point = buckets.get(String(m.delivered_at).slice(0, 10));
+      const at = m.delivered_at ?? m.sent_at;
+      if (at && !m.bounced_at && inWindow(at, start)) {
+        const point = buckets.get(String(at).slice(0, 10));
         if (point) point.delivered += 1;
       }
     }

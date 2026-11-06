@@ -665,7 +665,7 @@ export function computeAccountTotals(
       row.sent += 1;
 
     }
-    if (inRange(u.signals.delivered_at) && unitConfirmedDelivered(u)) {
+    if (inRange(unitDeliveredAt(u)) && unitConfirmedDelivered(u)) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);

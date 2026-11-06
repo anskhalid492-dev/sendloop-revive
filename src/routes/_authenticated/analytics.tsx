@@ -194,7 +194,7 @@ function AnalyticsPage() {
       "Status",
       "Sent (accepted by mail server)",
       "Accepted (no receipt or bounce yet)",
-      "Confirmed delivered",
+      "Delivered",
       "Opens",
       "Clicks",
       "Replies",
@@ -247,7 +247,7 @@ function AnalyticsPage() {
         },
         {
           // Confirmed delivered = explicit per-message receipts only; never acceptance.
-          label: "Confirmed Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
+          label: "Delivered", icon: Send, tone: "bg-chart-2/15 text-chart-2",
           value: deliveryPresentation(current).value,
           delta: previous
             ? deltaCount(

@@ -225,7 +225,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
             ["scheduled", "Queued (scheduled)", "Scheduled to send"],
             ["processing", "Sending", "Handed to the mail server now"],
             ["sent", "Accepted", "Accepted by the mail server; no receipt or bounce yet"],
-            ["delivered", "Confirmed delivered", "Explicit delivery receipt"],
+            ["delivered", "Delivered", "Accepted and not bounced"],
             ["bounced", "Bounced", "Sent, then rejected by the recipient's server"],
             ["failed", "Failed", "Definitive sending failure"],
             ["held", "Held for review", "Outcome unknown. Never failed, never resent automatically."],

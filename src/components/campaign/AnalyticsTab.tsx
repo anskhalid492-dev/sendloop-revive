@@ -82,7 +82,7 @@ export function AnalyticsTab({ builder }: { builder: CampaignBuilder }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <Kpi label="Leads Queued" value={total.toLocaleString()} icon={Users} />
         <Kpi label="Accepted by mail server" value={sent.toLocaleString()} icon={Send} sub={`${pct(sent, total)}% of queue`} />
-        <Kpi label="Confirmed delivered" value={delivered.toLocaleString()} icon={MailCheck} sub="Delivery receipts only" />
+        <Kpi label="Delivered" value={delivered.toLocaleString()} icon={MailCheck} sub="Accepted minus bounced" />
         <Kpi label="Replies" value={replied.toLocaleString()} icon={MessageSquareReply} sub={`${pct(replied, contactedPeople)}% reply rate`} />
         <Kpi label="Bounced" value={bounced.toLocaleString()} icon={ShieldAlert} sub={`${pct(bounced, sent)}% bounce rate`} />
         <Kpi
