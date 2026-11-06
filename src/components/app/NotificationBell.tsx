@@ -142,9 +142,9 @@ export function NotificationBell() {
                           </span>
                         </div>
                         <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">{n.reply.fromEmail}</p>
-                        {n.reply.preview || n.message ? (
+                        {n.reply.preview ? (
                           <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                            {n.reply.preview ?? n.message}
+                            {n.reply.preview}
                           </p>
                         ) : null}
                       </>
