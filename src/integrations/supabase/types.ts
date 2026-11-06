@@ -7254,6 +7254,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reclass_permanent_smtp_backup_2026_11: {
+        Row: {
+          backed_up_at: string | null
+          bounce_reason: string | null
+          bounced_at: string | null
+          delivery_status: string | null
+          id: string
+          status: string | null
+        }
+        Insert: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id: string
+          status?: string | null
+        }
+        Update: {
+          backed_up_at?: string | null
+          bounce_reason?: string | null
+          bounced_at?: string | null
+          delivery_status?: string | null
+          id?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       referral_attributions: {
         Row: {
           code: string
