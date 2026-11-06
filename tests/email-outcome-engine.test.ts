@@ -165,10 +165,11 @@ describe("pre-publish review items", () => {
     expect(o("550 5.7.1 Requested action not taken: mailbox unavailable, policy")).toBe("failed");
   });
 
-  it("Microsoft 5.4.1 Access denied is Bounced only with the AS(201806281) directory tag", () => {
+  // Owner decision (Nov 2026): permanent 5.4.x recipient rejections are hard bounces.
+  it("Microsoft 5.4.1 Recipient address rejected is Bounced; 4.4.1 is not", () => {
     expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(201806281) [BN8NAM12FT055.eop-nam12.prod.protection.outlook.com]")).toBe("bounced");
-    expect(o("550 5.4.1 Recipient address rejected: Access denied")).toBe("failed");
-    expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(7299)")).toBe("failed");
+    expect(o("550 5.4.1 Recipient address rejected: Access denied")).toBe("bounced");
+    expect(o("550 5.4.1 Recipient address rejected: Access denied. AS(7299)")).toBe("bounced");
     expect(o("451 4.4.1 Recipient address rejected: Access denied. AS(201806281)")).not.toBe("bounced");
   });
 
