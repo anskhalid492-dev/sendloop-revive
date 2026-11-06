@@ -147,14 +147,18 @@ export const getCampaign = createServerFn({ method: "GET" })
     const numberValue = (value: unknown) => Number(value ?? 0) || 0;
     const summary = (summaryValue ?? {}) as Record<string, unknown>;
     const recipientCounts = (summary["recipients"] ?? {}) as Record<string, unknown>;
-    const deliveryCounts = (summary["delivery"] ?? {}) as Record<string, unknown>;
-    const todayCounts = (summary["today"] ?? {}) as Record<string, unknown>;
+    const { fetchOneCampaignStats } = await import("@/lib/campaign-stats.server");
+    const workspaceId = String(campaignRow["workspace_id"]);
+    const { stats: canonical } = await fetchOneCampaignStats(context.supabase, workspaceId, data.id);
+    const { stats: canonicalToday } = await fetchOneCampaignStats(context.supabase, workspaceId, data.id, { from: runDayStart, to: new Date(runNow.getTime() + 1) });
+    const deliveryCounts = { ...canonical } as unknown as Record<string, unknown>;
+    const todayCounts = { ...canonicalToday } as unknown as Record<string, unknown>;
     const leadStates = Object.fromEntries(
       Object.entries((summary["lead_states"] ?? {}) as Record<string, unknown>).map(
         ([state, count]) => [state, numberValue(count)],
       ),
     ) as Record<string, number>;
-    const byStep = ((summary["by_step"] ?? []) as Array<Record<string, unknown>>).map((row) => ({
+    const byStep = ((canonical.byStep ?? []) as Array<Record<string, unknown>>).map((row) => ({
       step: numberValue(row["step"]),
       sent: numberValue(row["sent"]),
       delivered: numberValue(row["delivered"]),
@@ -219,11 +223,10 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
-        delivered: deliveredCount({
-          sent: sentTotal,
-          bounced: numberValue(deliveryCounts["bounced"]),
-          confirmedDelivered: numberValue(deliveryCounts["delivered"]),
-        }),
+        delivered: canonical.delivered,
+        held: canonical.held,
+        attempted: canonical.attempted,
+        currentOutcomes: canonical.currentOutcomes,
         delayed: numberValue(deliveryCounts["delayed"]),
         opened: numberValue(deliveryCounts["opened"]),
         clicked: numberValue(deliveryCounts["clicked"]),
@@ -241,11 +244,7 @@ export const getCampaign = createServerFn({ method: "GET" })
       },
       today: {
         sent: sentTodayCount,
-        delivered: deliveredCount({
-          sent: sentTodayCount,
-          bounced: numberValue(todayCounts["bounced"]),
-          confirmedDelivered: numberValue(todayCounts["delivered"]),
-        }),
+        delivered: canonicalToday.delivered,
         opened: numberValue(todayCounts["opened"]),
         clicked: numberValue(todayCounts["clicked"]),
         replied: numberValue(todayCounts["replied"]),

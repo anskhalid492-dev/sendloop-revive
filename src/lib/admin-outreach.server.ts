@@ -168,7 +168,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
     fetchByIds<any>(ids, (chunk) =>
       db()
         .from("campaign_messages")
-        .select("id, campaign_id, status, sent_at, bounced_at, recipient_id, lead_id")
+        .select("id, campaign_id, status, sent_at, delivered_at, bounced_at, failed_at, last_error, attempts, delivery_status, recipient_id, lead_id")
         .in("campaign_id", chunk)
         .in("status", ["sent", "failed"]),
     ),
@@ -301,6 +301,7 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       unsubscribes: unsubscribeCounts[c.id] ?? 0,
     };
     const rates = deriveRates(metrics);
+    const confirmedDelivery = (messages as any[]).filter(m => m.campaign_id === c.id && m.delivered_at && !m.bounced_at).length;
     return {
       id: c.id,
       name: c.name,
@@ -313,8 +314,8 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
       ownerName: owner.name,
       leads: metrics.leads,
       sent: metrics.sent,
-      delivered: rates.delivered,
-      deliveryRate: rates.deliveryRate,
+      delivered: confirmedDelivery,
+      deliveryRate: metrics.sent ? confirmedDelivery / metrics.sent * 100 : null,
       opens: metrics.opens,
       openRate: rates.openRate,
       clicks: metrics.clicks,

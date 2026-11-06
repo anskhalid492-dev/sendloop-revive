@@ -20,7 +20,7 @@ describe("campaign stats source", () => {
       queued: 98,
       sending: 2,
       sent: 1502,
-      delivered: 0400,
+      delivered: 1400,
       opened: 500,
       clicked: 120,
       replied: 42,

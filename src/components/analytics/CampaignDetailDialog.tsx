@@ -51,7 +51,7 @@ export function CampaignDetailDialog({
           <div className="grid grid-cols-2 gap-3">
             {[
               ["Sent", formatCount(row.sent)],
-              ["Accepted − bounced", formatCount(row.delivered)],
+              ["Confirmed delivered", formatCount(row.delivered)],
               [
                 "Unique opens",
                 row.openTracking === false
@@ -70,6 +70,7 @@ export function CampaignDetailDialog({
               ],
               ["Complaints", formatCount(row.complained)],
               ["Failed", formatCount(row.failed)],
+              ["Held for review", formatCount(row.held ?? 0)],
               ["Status", row.status],
             ].map(([label, value]) => (
               <div key={label} className="rounded-lg border border-border/60 p-3">
