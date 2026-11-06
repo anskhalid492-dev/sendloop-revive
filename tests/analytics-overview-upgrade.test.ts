@@ -17,12 +17,12 @@ describe("analytics overview actual units", () => {
     expect(summary.sent).toBe(2);
     expect(summary.contacted).toBe(1);
     expect(summary.opens).toBe(1);
-    expect(summary.delivered).toBe(2);
+    expect(summary.delivered).toBe(0);
     expect(summary.deliveryComplete).toBe(false);
   });
-  it("counts delivered as sent minus bounced", () => {
+  it("never counts accepted sends as confirmed delivered without a receipt", () => {
     const summary = summarizeEngagement(units(), from, to);
-    expect(summary.delivered).toBe(2);
+    expect(summary.delivered).toBe(0);
   });
   it("divides unique people by reachable people, never by emails sent", () => {
     // A 3-step sequence sends one person 3 emails: 30 sends, 10 contacted.

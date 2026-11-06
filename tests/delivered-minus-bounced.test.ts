@@ -51,7 +51,7 @@ describe("delivered never exceeds accepted sends minus bounced people", () => {
     const [row] = computeAccountTotals(units, { from, to });
     expect(row!.sent).toBe(3);
     expect(row!.bounced).toBe(0);
-    expect(row!.delivered).toBe(3);
+    expect(row!.delivered).toBe(0);
   });
 
   it("timeseries buckets", () => {
