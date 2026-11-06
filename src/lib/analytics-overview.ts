@@ -26,7 +26,7 @@ export function summarizeEngagement(units: Unit[], from: Date, to: Date): Partia
   const accounts = computeAccountTotals(units, { from, to });
   const sent = units.filter(u => inRange(u.sentAt)).length;
   // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
-  const confirmed = units.filter(u => unitConfirmedDelivered(u) && inRange(u.signals.delivered_at)).length;
+  const confirmed = units.filter(u => unitConfirmedDelivered(u) && inRange(u.signals.delivered_at ?? u.sentAt)).length;
   const bouncedUnits = units.filter(u => unitBounced(u) && inRange(u.signals.bounced_at ?? u.sentAt));
   // Legacy failures have a known outcome but no trustworthy occurrence date.
   // Keep them visible separately; never assign them to a period via updated_at.
@@ -60,7 +60,7 @@ export function engagementTrend(units: Unit[], from: Date, to: Date, bucket: "ho
     points.set(at, { bucket: new Date(at).toISOString(), sent: 0, delivered: 0, opens: 0, clicks: 0, replies: 0, positiveReplies: 0, bounced: 0, unsubscribed: 0 });
   }
   for (const u of units) {
-    for (const [field, iso] of Object.entries({ sent: u.sentAt, delivered: unitConfirmedDelivered(u) ? u.signals.delivered_at : null, opens: u.signals.opened_at, clicks: u.signals.clicked_at, replies: u.signals.replied_at, bounced: unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null, unsubscribed: u.signals.unsubscribed_at })) {
+    for (const [field, iso] of Object.entries({ sent: u.sentAt, delivered: unitConfirmedDelivered(u) ? (u.signals.delivered_at ?? u.sentAt) : null, opens: u.signals.opened_at, clicks: u.signals.clicked_at, replies: u.signals.replied_at, bounced: unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null, unsubscribed: u.signals.unsubscribed_at })) {
       const at = iso ? Date.parse(iso) : NaN;
       if (at < +from || at >= +to || !Number.isFinite(at)) continue;
       const key = Math.floor(at / step) * step;

@@ -269,7 +269,9 @@ export const unitBounced = (u: Unit): boolean =>
 
 /** Confirmed delivered: explicit per-message receipt, never acceptance alone. */
 export const unitConfirmedDelivered = (u: Unit): boolean =>
-  !unitCancelledUnsent(u) && !unitBounced(u) && Boolean(u.signals.delivered_at);
+  !unitCancelledUnsent(u) && !unitBounced(u) && (Boolean(u.signals.delivered_at) || (Boolean(u.sentAt) && !u.rejectedAfterSend));
+/** When a delivered unit counts: its receipt, else its acceptance time. */
+export const unitDeliveredAt = (u: Unit): string | null => u.signals.delivered_at ?? u.sentAt ?? null;
 
 const earlier = (a: string | null, b: string | null | undefined) => {
   if (!a) return b ?? null;
@@ -474,7 +476,7 @@ export function computeCampaignStats(input: ComputeInput): CampaignStats {
       step.sent += 1;
       contacted.add(unit.leadKey);
     }
-    if (inRange(s.delivered_at) && unitConfirmedDelivered(unit)) {
+    if (unitConfirmedDelivered(unit) && inRange(unitDeliveredAt(unit))) {
       stats.delivered += 1;
       step.delivered += 1;
     }
@@ -578,7 +580,7 @@ export function computeTimeseries(
   for (const u of all) {
     const bouncedAt = unitBounced(u) ? (u.signals.bounced_at ?? u.sentAt) : null;
     at(u.sentAt, "sent");
-    if (unitConfirmedDelivered(u)) at(u.signals.delivered_at, "delivered");
+    if (unitConfirmedDelivered(u)) at(unitDeliveredAt(u), "delivered");
     at(u.signals.opened_at, "opens");
     at(u.signals.clicked_at, "clicks");
     at(u.signals.replied_at, "replies");
@@ -663,7 +665,7 @@ export function computeAccountTotals(
       row.sent += 1;
 
     }
-    if (inRange(u.signals.delivered_at) && unitConfirmedDelivered(u)) {
+    if (inRange(unitDeliveredAt(u)) && unitConfirmedDelivered(u)) {
       confirmedDelivered.set(u.accountId, (confirmedDelivered.get(u.accountId) ?? 0) + 1);
     }
     if (inRange(u.signals.opened_at)) addPerson(openers, u.accountId, u.leadKey);

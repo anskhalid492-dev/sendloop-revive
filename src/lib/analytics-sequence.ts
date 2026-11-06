@@ -100,7 +100,7 @@ function accumulate(
     if (!bounced && !unit.signals.delivered_at && !unit.rejectedAfterSend) target.accepted += 1;
   }
   // Delivery requires this message's actual receipt.
-  if (inRange(unit.signals.delivered_at) && unitConfirmedDelivered(unit)) target.delivered += 1;
+  if (inRange(unit.signals.delivered_at ?? unit.sentAt) && unitConfirmedDelivered(unit)) target.delivered += 1;
   if (inRange(unit.signals.opened_at)) target.opens += 1;
   if (inRange(unit.signals.clicked_at)) target.clicks += 1;
   if (inRange(unit.signals.replied_at)) target.replies += 1;

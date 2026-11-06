@@ -259,7 +259,7 @@ export function CampaignsTable({
                 <SortButton label="Replied" sortKey="replies" active={sortKey === "replies"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[8%] text-right">
-                <SortButton label="Confirmed delivered" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
+                <SortButton label="Delivered" sortKey="reached" active={sortKey === "reached"} dir={dir} onSort={onSort} />
               </TableHead>
               <TableHead className="w-[9%] pl-6">
                 <SortButton label="Status" sortKey="status" active={sortKey === "status"} dir={dir} onSort={onSort} />

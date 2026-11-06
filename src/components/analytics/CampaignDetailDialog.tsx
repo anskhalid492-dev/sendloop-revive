@@ -51,7 +51,7 @@ export function CampaignDetailDialog({
           <div className="grid grid-cols-2 gap-3">
             {[
               ["Sent", formatCount(row.sent)],
-              ["Confirmed delivered", formatCount(row.delivered)],
+              ["Delivered", formatCount(row.delivered)],
               [
                 "Unique opens",
                 row.openTracking === false

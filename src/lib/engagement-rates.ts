@@ -94,5 +94,7 @@ export function unsubscribeRatePercent(unsubscribed: number, base: PeopleBase | 
  * message outcomes in `@/lib/message-outcomes`.
  */
 export function deliveredCount(base: ReachableBase & { confirmedDelivered?: number }): number {
-  return Math.min(reachable(base), Math.max(0, base.confirmedDelivered ?? 0));
+  // Owner rule: Delivered = accepted by the mail server minus bounced.
+  void base.confirmedDelivered;
+  return reachable(base);
 }

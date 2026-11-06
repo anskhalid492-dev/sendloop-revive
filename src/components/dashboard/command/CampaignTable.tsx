@@ -44,7 +44,7 @@ const HEADERS = [
   "Status",
   "Leads",
   "Sent",
-  "Confirmed delivered",
+  "Delivered",
   "Replies",
   "Positive",
   "Meetings",

@@ -10,12 +10,13 @@ import { deliveredCount } from "@/lib/engagement-rates";
 const HELD_ERROR = "send_outcome_unknown_after_interrupt";
 
 describe("exclusive message outcomes", () => {
-  it("never counts provider acceptance as confirmed delivered", () => {
-    expect(messageOutcome({ id: "a", status: "sent", sent_at: "2026-11-01T00:00:00Z" })).toBe("accepted");
+  it("1,000 accepted with 10 bounces shows 990 delivered", () => {
+    expect(messageOutcome({ id: "a", status: "sent", sent_at: "2026-11-01T00:00:00Z" })).toBe("delivered");
     expect(
       messageOutcome({ id: "b", status: "sent", sent_at: "2026-11-01T00:00:00Z", delivered_at: "2026-11-01T00:01:00Z" }),
     ).toBe("delivered");
-    expect(deliveredCount({ sent: 705, bounced: 10, confirmedDelivered: 0 })).toBe(0);
+    expect(deliveredCount({ sent: 1000, bounced: 10, confirmedDelivered: 0 })).toBe(990);
+    expect(deliveredCount({ sent: 705, bounced: 10 })).toBe(695);
   });
 
   it("keeps held-for-review messages out of Failed and never retries them", () => {
@@ -46,7 +47,7 @@ describe("exclusive message outcomes", () => {
     const c = countMessageOutcomes(rows);
     expect(c.total).toBe(5);
     expect(c.queued + c.sending + c.accepted + c.delivered + c.bounced + c.failed + c.held + c.cancelled).toBe(5);
-    expect(c).toMatchObject({ bounced: 1, held: 1, cancelled: 1, queued: 1, accepted: 1, delivered: 0, failed: 0 });
+    expect(c).toMatchObject({ bounced: 1, held: 1, cancelled: 1, queued: 1, accepted: 0, delivered: 1, failed: 0 });
     expect(c.providerAccepted).toBe(2);
   });
 
@@ -59,7 +60,7 @@ describe("exclusive message outcomes", () => {
       ...Array.from({ length: 3 }, (_, i) => ({ id: `c${i}`, status: "cancelled" })),
     ];
     const c = countMessageOutcomes(rows);
-    expect(c).toMatchObject({ total: 1488, queued: 664, accepted: 695, bounced: 10, held: 116, cancelled: 3, failed: 0, delivered: 0 });
+    expect(c).toMatchObject({ total: 1488, queued: 664, accepted: 0, bounced: 10, held: 116, cancelled: 3, failed: 0, delivered: 695 });
     expect(c.providerAccepted).toBe(705);
     expect(c.retryable).toBe(0);
   });
@@ -71,6 +72,6 @@ describe("exclusive message outcomes", () => {
       { id: "m3", recipient_id: "r2", status: "sent", sent_at: "x" },
     ]);
     expect(map.get("r1")).toBe("bounced");
-    expect(map.get("r2")).toBe("accepted");
+    expect(map.get("r2")).toBe("delivered");
   });
 });

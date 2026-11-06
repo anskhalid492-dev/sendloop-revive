@@ -163,7 +163,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
     { label: "Queued", value: current?.queued ?? 0, color: "bg-muted-foreground/40" },
     { label: "Sending", value: current?.sending ?? 0, color: "bg-primary/40" },
     { label: "Accepted", value: current?.accepted ?? 0, color: "bg-primary" },
-    { label: "Confirmed delivered", value: current?.delivered ?? 0, color: "bg-chart-3" },
+    { label: "Delivered", value: current?.delivered ?? 0, color: "bg-chart-3" },
     { label: "Bounced", value: current?.bounced ?? 0, color: "bg-destructive" },
     { label: "Failed", value: current?.failed ?? 0, color: "bg-chart-4" },
     { label: "Held for review", value: current?.held ?? 0, color: "bg-chart-5" },
@@ -228,7 +228,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
         <HeadlineCard icon={Send} label="Accepted by mail server" value={sent} />
         <HeadlineCard
           icon={Mail}
-          label="Confirmed delivered"
+          label="Delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
         />
@@ -373,7 +373,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 value={delivery?.processing ?? 0}
                 hint="Handed to the provider"
               />
-              <MiniStat label="Confirmed delivered today" value={today?.delivered ?? 0} />
+              <MiniStat label="Delivered today" value={today?.delivered ?? 0} />
               <MiniStat label="Opened today" value={today?.opened ?? 0} hint="Unique recipients" />
               <MiniStat label="Clicked today" value={today?.clicked ?? 0} hint="Unique recipients" />
               <MiniStat label="Replied today" value={today?.replied ?? 0} hint="Unique recipients" />
