@@ -13,7 +13,7 @@
  *    is never rendered as "Completed".
  *  - Mailbox capacity uses the rolling 12-hour window model.
  */
-import { campaignRunStatus, isRetryableFailure } from "@/lib/campaign-run-state";
+import { campaignRunStatus } from "@/lib/campaign-run-state";
 import { zonedStartOfDay } from "@/lib/campaign-schedule";
 import {
   MAILBOX_WINDOW_HOURS,
@@ -41,7 +41,7 @@ import {
   type SeriesPoint,
 } from "@/lib/dashboard-command-model";
 import { mailboxActivityCopy } from "@/lib/activity-copy";
-import { messageOutcome } from "@/lib/message-outcomes";
+import { isRetryableMessage, messageOutcome } from "@/lib/message-outcomes";
 import { outcomeRecipientKey } from "@/lib/cancellation-reason";
 
 type AnyClient = {
@@ -212,7 +212,6 @@ supabase
       entries.set(key, at); scope.set(String(id), entries);
     }
   }
-  const personBounced = (m: Row) => Boolean(m["bounced_at"]);
   const countBounced = (scope: Map<string, number> | undefined, from: number, to: number) => {
     if (!scope) return 0;
     let total = 0;
@@ -334,12 +333,6 @@ supabase
     if (rejectedAfterSend(m)) b.rejected = (b.rejected ?? 0) + 1;
   }
   // Confirmed delivered per day: per-message receipts only.
-  const bouncesPerDay = new Map<string, number>();
-  for (const at of bounceAtByPerson.values()) {
-    if (at < rangeStart) continue;
-    const key = new Date(at).toISOString().slice(0, 10);
-    bouncesPerDay.set(key, (bouncesPerDay.get(key) ?? 0) + 1);
-  }
   for (const [key, b] of buckets) {
     b.delivered = messageRows.filter(m => m["delivered_at"] && String(m["delivered_at"]).slice(0, 10) === key && messageOutcome(m as never) === "delivered").length;
     delete b.rejected;
