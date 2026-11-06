@@ -94,7 +94,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
   const deleteReplyFn = useServerFn(deleteReply);
 
 
-  const [status, setStatus] = useState<MessageStatus | "bounced" | "unsubscribed" | "held" | null>(null);
+  const [status, setStatus] = useState<MessageStatus | "bounced" | "unsubscribed" | "held" | "delivered" | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<QueueMessage | null>(null);
@@ -113,8 +113,9 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
       fetchQueue({
         data: {
           campaignId: builder.campaignId,
-          status: status === "bounced" || status === "unsubscribed" || status === "held" ? null : status,
+          status: status === "bounced" || status === "unsubscribed" || status === "held" || status === "delivered" ? null : status,
           held: status === "held" ? true : undefined,
+          delivered: status === "delivered" ? true : undefined,
           bounced: status === "bounced" ? true : undefined,
           unsubscribed: status === "unsubscribed" ? true : undefined,
           search: search || undefined,
@@ -215,7 +216,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-9">
-        {([...MESSAGE_STATUSES, "bounced", "unsubscribed"] as const).map((s) => (
+        {([...MESSAGE_STATUSES, "delivered", "bounced", "unsubscribed"] as const).map((s) => (
           <Button
             variant="outline"
             key={s}
@@ -227,7 +228,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
             )}
           >
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {s}
+              {s === "sent" ? "Accepted (current)" : s === "delivered" ? "Confirmed delivered" : s}
             </p>
             <p className="text-xl font-semibold tabular-nums">{counts?.[s] ?? 0}</p>
           </Button>

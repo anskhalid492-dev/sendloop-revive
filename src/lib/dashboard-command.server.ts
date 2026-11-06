@@ -194,53 +194,22 @@ supabase
   const recipientRows: Row[] = recipients ?? [];
   const meetingRows: Row[] = (meetingLeads ?? []).filter((l) => l["last_activity_at"]);
 
-  /* --------------------------------------------------------------- bounces */
-  // A person bounced when a real provider signal exists OR their remaining
-  // queued mail was cancelled because they bounced. Without the second half the
-  // dashboard reported 0 bounced while the campaign page showed them, since a
-  // mid-sequence bounce only ever lands on the cancelled rows. Same rule as
-  // `countOutcomeRecipients` and `computeCampaignStats`. Counted per PERSON.
+  // Per-message bounce evidence; cancellation only proves a stopped send.
   const bounceAtByPerson = new Map<string, number>();
   const bounceAtByCampaign = new Map<string, Map<string, number>>();
   const bounceAtByAccount = new Map<string, Map<string, number>>();
-  const noteBounce = (scope: Map<string, Map<string, number>>, id: unknown, key: string, at: number) => {
-    if (!id) return;
-    const inner = scope.get(String(id)) ?? new Map<string, number>();
-    const prev = inner.get(key);
-    if (prev === undefined || at < prev) inner.set(key, at);
-    scope.set(String(id), inner);
-  };
-  // When a bounce only exists on a cancelled follow-up, `updated_at` is when the
-  // row was written (a backfill can make that "today"), not when the bounce
-  // happened. The real moment is the person's last actual send, so use that
-  // first — otherwise old bounces pile into today's bounce rate.
-  const lastSentByPerson = new Map<string, number>();
   for (const m of messageRows) {
-    const at = ts(m["sent_at"]);
-    const key = outcomeRecipientKey(m);
-    if (at === null || !key) continue;
-    const prev = lastSentByPerson.get(key);
-    if (prev === undefined || at > prev) lastSentByPerson.set(key, at);
+    const at = ts(m["bounced_at"]);
+    if (at === null) continue;
+    const key = String(m["id"]);
+    bounceAtByPerson.set(key, at);
+    for (const [scope, id] of [[bounceAtByCampaign, m["campaign_id"]], [bounceAtByAccount, m["sending_account_id"]]] as const) {
+      if (!id) continue;
+      const entries = scope.get(String(id)) ?? new Map<string, number>();
+      entries.set(key, at); scope.set(String(id), entries);
+    }
   }
-  for (const m of messageRows) {
-    const key = outcomeRecipientKey(m);
-    if (!key) continue;
-    const at =
-      ts(m["bounced_at"]) ??
-      (m["cancelled_reason"] === "recipient_bounced"
-        ? (ts(m["sent_at"]) ??
-          lastSentByPerson.get(key) ??
-          ts(m["scheduled_at"]) ??
-          ts(m["updated_at"]))
-        : null);
-    if (at === null || at === undefined) continue;
-    const prev = bounceAtByPerson.get(key);
-    if (prev === undefined || at < prev) bounceAtByPerson.set(key, at);
-    noteBounce(bounceAtByCampaign, m["campaign_id"], key, at);
-    noteBounce(bounceAtByAccount, m["sending_account_id"], key, at);
-  }
-  /** Did the person this message belongs to bounce at any point? */
-  const personBounced = (m: Row) => bounceAtByPerson.has(outcomeRecipientKey(m));
+  const personBounced = (m: Row) => Boolean(m["bounced_at"]);
   const countBounced = (scope: Map<string, number> | undefined, from: number, to: number) => {
     if (!scope) return 0;
     let total = 0;
@@ -315,7 +284,7 @@ supabase
     ts(m["sent_at"]) !== null && !m["bounced_at"] && m["status"] === "failed";
   const totalsFor = (from: number, to: number): PeriodTotals => {
     const sentMsgs = messageRows.filter((m) => within(m["sent_at"], from, to));
-    const sentRejected = sentMsgs.filter(rejectedAfterSend).length;
+
     const windowReplies = replyRows.filter((r) => within(r["received_at"], from, to));
     const uniqueReplyLeads = new Set(
       windowReplies.map((r) => r["lead_id"] ?? r["from_email"]).filter(Boolean),
@@ -329,11 +298,7 @@ supabase
     const windowBounced = countBounced(bounceAtByPerson, from, to);
     return {
       sent: sentMsgs.length,
-      // Delivered = accepted for sending minus bounced PEOPLE in the same window.
-      // A bounce usually lands on a cancelled follow-up with no `sent_at`, so
-      // filtering send rows left delivered == sent next to a non-zero bounce
-      // count. Customer mailboxes send over SMTP and never report a delivery
-      // confirmation, so `delivered_at` can never be the base.
+      // Provider receipts, never inferred from acceptance.
       delivered: messageRows.filter(m => within(m["delivered_at"], from, to) && messageOutcome(m as never) === "delivered").length,
       replies: uniqueReplyLeads.size,
       positive: positiveLeads.size,

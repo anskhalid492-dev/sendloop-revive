@@ -69,6 +69,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
         /** Filter to bounced messages (bounced_at set). Distinct from failed. */
         bounced: z.boolean().optional(),
         held: z.boolean().optional(),
+        delivered: z.boolean().optional(),
         /** Filter to unsubscribed recipients. */
         unsubscribed: z.boolean().optional(),
         search: z.string().trim().max(120).optional(),
@@ -88,6 +89,7 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
     // Bounces are their own outcome: a bounced message never counts as failed,
     // and failed never includes bounced rows.
     if (data.status === "failed") query = query.is("bounced_at", null).is("delivered_at", null).lt("attempts", 999).or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
+    if (data.delivered) query = query.not("delivered_at", "is", null).is("bounced_at", null);
     if (data.held) query = query.is("bounced_at", null).is("delivered_at", null).or("attempts.gte.999,last_error.ilike.%send_outcome_unknown%");
     // A recipient who bounced or unsubscribed mid-sequence has their remaining
     // mail cancelled with the reason attached — include those rows here too.

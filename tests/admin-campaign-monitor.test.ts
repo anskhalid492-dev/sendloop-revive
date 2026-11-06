@@ -34,8 +34,8 @@ describe("message classification", () => {
 });
 
 describe("rates", () => {
-  it("delivered = sent minus bounces of sent emails", () => {
-    const r = deriveRates({ ...base, sent: 100, bounced: 7, bouncedAfterSend: 5, failed: 3, unknown: 1, opens: 19, replies: 4 });
+  it("delivery uses explicit receipts, separate from reachable engagement base", () => {
+    const r = deriveRates({ ...base, sent: 100, bounced: 7, bouncedAfterSend: 5, failed: 3, unknown: 1, delivered: 95, opens: 19, replies: 4 });
     expect(r.delivered).toBe(95);
     expect(r.deliveryRate).toBe(95);
     expect(r.openRate).toBe(20); // 19 / 95
