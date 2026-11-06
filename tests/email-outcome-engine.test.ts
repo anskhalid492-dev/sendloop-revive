@@ -44,7 +44,6 @@ const FAILED = [
   "TLS negotiation failed",
 
   "421 4.7.0 Try again later",
-  "550",
   "Delivery Status Notification (Failure)",
 ];
 
