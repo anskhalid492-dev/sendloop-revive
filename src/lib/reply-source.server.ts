@@ -4,6 +4,8 @@ import { classifyReplySource, type ReplySource } from "@/lib/reply-source";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Any = any;
 
 export type ReplySourceDetails = {
   source: ReplySource;
@@ -43,8 +45,8 @@ export async function resolveReplySources(
       .limit(ids.length * 5),
   ]);
 
-  const latest = new Map<string, Record<string, unknown>>();
-  for (const m of (msgs ?? []) as Array<Record<string, unknown>>) {
+  const latest = new Map<string, Any>();
+  for (const m of (msgs ?? []) as Array<Any>) {
     const cid = m.conversation_id as string;
     if (!latest.has(cid)) latest.set(cid, m);
   }
@@ -68,8 +70,8 @@ export async function resolveReplySources(
     }
   }
 
-  const convById = new Map<string, Record<string, unknown>>();
-  for (const c of (convs ?? []) as Array<Record<string, unknown>>) convById.set(c.id as string, c);
+  const convById = new Map<string, Any>();
+  for (const c of (convs ?? []) as Array<Any>) convById.set(c.id as string, c);
 
   const campaignIds = new Set<string>();
   const accountIds = new Set<string>();
