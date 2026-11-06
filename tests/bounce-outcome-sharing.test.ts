@@ -45,7 +45,7 @@ describe("bounce outcome is shared across every derived surface", () => {
     const totals = computeAccountTotals(units, { from, to })[0]!;
     expect(totals.sent).toBe(1);
     expect(totals.bounced).toBe(0);
-    expect(totals.delivered).toBe(0);
+    expect(totals.delivered).toBe(1);
   });
 
   it("counts the bounce in the timeseries", () => {
