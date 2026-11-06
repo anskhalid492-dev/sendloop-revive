@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { deliveredCount } from "@/lib/engagement-rates";
 import { clampMailboxHourlyLimit } from "@/lib/mailbox-hourly-cap";
 import { buildCampaignUpdatePatch } from "@/lib/campaign-update-patch";
 
