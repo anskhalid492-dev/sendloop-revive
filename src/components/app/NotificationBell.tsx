@@ -4,7 +4,6 @@ import { Bell, CheckCheck, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   deleteNotification,
@@ -78,12 +77,16 @@ export function NotificationBell() {
           ) : null}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+      <PopoverContent
+        align="end"
+        collisionPadding={8}
+        className="flex w-[min(24rem,calc(100vw-1rem))] max-h-[min(36rem,var(--radix-popover-content-available-height,80vh))] flex-col overflow-hidden p-0"
+      >
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-4 py-3">
           <span className="text-sm font-semibold">Notifications</span>
           {unread > 0 ? (
             <button
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline"
               disabled={readAll.isPending}
               onClick={() => readAll.mutate()}
             >
@@ -91,7 +94,13 @@ export function NotificationBell() {
             </button>
           ) : null}
         </div>
-        <ScrollArea className={items.length > 0 ? "h-80" : ""}>
+        {/* Native scroller: Radix ScrollArea wraps content in a display:table box
+            that grows to the widest child, which pushed long addresses past
+            the dropdown and broke wrapping. */}
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain [-webkit-overflow-scrolling:touch]"
+          data-testid="notification-list"
+        >
           {query.isLoading ? (
             <div className="space-y-2 p-4">
               <div className="h-10 animate-pulse rounded bg-muted" />
@@ -106,7 +115,7 @@ export function NotificationBell() {
               {items.map((n) => (
                 <li
                   key={n.id}
-                  className={cn("group flex gap-3 px-4 py-3", !n.read && "bg-accent/40")}
+                  className={cn("group flex min-w-0 gap-3 px-4 py-3", !n.read && "bg-accent/40")}
                 >
                   <button
                     className="min-w-0 flex-1 text-left"
@@ -119,44 +128,44 @@ export function NotificationBell() {
                   >
                     {n.reply ? (
                       <>
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center justify-between gap-2">
                           <span
                             className={cn(
-                              "rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
+                              "shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold",
                               REPLY_SOURCE_STYLES[n.reply.source],
                             )}
                           >
                             {REPLY_SOURCE_LABELS[n.reply.source]}
                           </span>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
                             {formatWhen(n.reply.receivedAt ?? n.created_at)}
                           </span>
                         </div>
-                        <p className="mt-1 truncate text-sm font-medium">
+                        <p className="mt-1 text-sm font-medium [overflow-wrap:anywhere]">
                           {n.reply.fromName ? `${n.reply.fromName} · ` : ""}
                           <span className="font-normal text-muted-foreground">{n.reply.fromEmail}</span>
                         </p>
                         {n.reply.subject || n.message ? (
-                          <p className="truncate text-xs font-medium">{n.reply.subject ?? n.message}</p>
+                          <p className="text-xs font-medium [overflow-wrap:anywhere]">{n.reply.subject ?? n.message}</p>
                         ) : null}
                         {n.reply.preview ? (
-                          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{n.reply.preview}</p>
+                          <p className="mt-0.5 line-clamp-3 text-xs text-muted-foreground [overflow-wrap:anywhere]">{n.reply.preview}</p>
                         ) : null}
                         {n.reply.source === "campaign_reply" && n.reply.campaignName ? (
-                          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                          <p className="mt-1 text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                             Campaign: {n.reply.campaignName}
                           </p>
                         ) : n.reply.source === "warmup_reply" && n.reply.mailboxEmail ? (
-                          <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                          <p className="mt-1 text-[11px] text-muted-foreground [overflow-wrap:anywhere]">
                             Warmup mailbox: {n.reply.mailboxEmail}
                           </p>
                         ) : null}
                       </>
                     ) : (
                       <>
-                        <p className="text-sm font-medium">{n.title}</p>
+                        <p className="text-sm font-medium [overflow-wrap:anywhere]">{n.title}</p>
                         {n.message ? (
-                          <p className="mt-0.5 text-xs text-muted-foreground">{n.message}</p>
+                          <p className="mt-0.5 text-xs text-muted-foreground [overflow-wrap:anywhere]">{n.message}</p>
                         ) : null}
                         <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.created_at)}</p>
                       </>
@@ -164,7 +173,7 @@ export function NotificationBell() {
                   </button>
                   <button
                     aria-label="Delete notification"
-                    className="self-start text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                    className="shrink-0 self-start text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                     onClick={() => del.mutate({ data: { id: n.id } })}
                   >
                     <Trash2 className="size-3.5" />
@@ -173,7 +182,7 @@ export function NotificationBell() {
               ))}
             </ul>
           )}
-        </ScrollArea>
+        </div>
       </PopoverContent>
     </Popover>
   );

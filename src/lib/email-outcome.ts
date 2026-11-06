@@ -69,6 +69,26 @@ const RECIPIENT_HINTS =
 /** Enhanced codes that, under a permanent reply, establish recipient failure. */
 const RECIPIENT_CODES = new Set(["5.1.0", "5.1.1", "5.1.2", "5.1.3", "5.1.6", "5.1.10", "5.2.1", "5.2.2"]);
 
+/**
+ * Permanent enhanced-code classes that are recipient/destination-side by
+ * definition (RFC 3463): 5.1.x addressing, 5.2.x mailbox status, 5.4.x
+ * network/routing to the destination. Sender-address subjects (5.1.7 bad
+ * sender syntax, 5.1.8 bad sender domain) and 5.2.3 (message too large — our
+ * content) are excluded and stay Failed.
+ */
+const NON_RECIPIENT_CODES = new Set(["5.1.7", "5.1.8", "5.2.3"]);
+function recipientClassCode(codes: string[]): string | undefined {
+  return codes.find(
+    (c) => !NON_RECIPIENT_CODES.has(c) && (c.startsWith("5.1.") || c.startsWith("5.2.") || c.startsWith("5.4.")),
+  );
+}
+
+/** Message-size / content wording: a 552 with this is about our message. */
+const SIZE_HINTS = /(too\s+(large|big)|size\s+(limit|exceed)|exceeds?\s+(the\s+)?(maximum|size|message)|message\s+(length|size))/i;
+
+/** "Recipient address rejected" — receiving server refusing the RECIPIENT. */
+const RECIPIENT_REJECTED = /recipient\s+address\s+rejected/i;
+
 /** Exact customer-named patterns always recorded as bounced (never suppressed). */
 const FORCED_BOUNCE_PATTERNS: RegExp[] = [
   /\b550\s+5\.7\.1_etr\b/i,
@@ -127,6 +147,19 @@ export function classifyEmailOutcome(
     return result("bounced", "recipient_invalid", smtp, codes);
   }
 
+  // 5.4.x destination/routing refusal of the recipient ("550 5.4.1 Recipient
+  // address rejected: Access denied" without the AS tag, Gmail/Exchange
+  // routing failures). "access denied" here describes the recipient, so it is
+  // checked before the generic sender-side wording.
+  if (
+    smtp?.startsWith("5") !== false &&
+    codes.some((c) => c.startsWith("5.4.")) &&
+    !codes.some((c) => c.startsWith("5.7.")) &&
+    (RECIPIENT_REJECTED.test(text) || !SENDER_SIDE_HINTS.test(text))
+  ) {
+    return result("bounced", "recipient_invalid", smtp, codes);
+  }
+
   const senderCode = codes.some((c) => c.startsWith("5.7.") || c.startsWith("4.7.")) || (smtp !== null && SENDER_SIDE_BASIC_CODES.has(smtp));
   if (senderCode || SENDER_SIDE_HINTS.test(text)) return result("failed", "sender_side", smtp, codes);
 
@@ -134,7 +167,7 @@ export function classifyEmailOutcome(
   const permanentCode = smtp?.startsWith("5") || codes.some((c) => c.startsWith("5."));
   if (temporaryCode) return result("delayed", "temporary", smtp, codes);
 
-  const recipientCode = codes.find((c) => RECIPIENT_CODES.has(c));
+  const recipientCode = codes.find((c) => RECIPIENT_CODES.has(c)) ?? recipientClassCode(codes);
   if (recipientCode) {
     return result("bounced", recipientCode.startsWith("5.2.") ? "mailbox_unavailable" : "recipient_invalid", smtp, codes);
   }
@@ -143,6 +176,13 @@ export function classifyEmailOutcome(
     // is still recipient evidence; a bare temporary hint is not.
     return result("bounced", /full|quota|disabled|inactive/i.test(text) ? "mailbox_unavailable" : "recipient_invalid", smtp, codes);
   }
+  // 552 (RFC 5321: exceeded storage allocation) is the recipient mailbox
+  // refusing for storage, unless the server says our message is too large.
+  if (smtp === "552" && !SIZE_HINTS.test(text) && !codes.some((c) => c.startsWith("5.3.") || c.startsWith("5.6."))) {
+    return result("bounced", "mailbox_unavailable", smtp, codes);
+  }
+  // 5.0.x is generic: bounced only when the server's own words name the
+  // recipient/mailbox failure (handled above); otherwise stays ambiguous.
   if (!permanentCode && TEMPORARY_HINTS.test(text)) return result("delayed", "temporary", smtp, codes);
   return result("failed", permanentCode ? "ambiguous_permanent" : "no_evidence", smtp, codes);
 }

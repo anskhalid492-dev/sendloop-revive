@@ -84,7 +84,10 @@ export function parseDeliveryReport(input: {
   text: string | null | undefined;
   subject?: string | null;
 }): DeliveryReport {
-  const text = input.text ?? "";
+  // Unfold RFC 5322/3464 folded header lines first: servers commonly wrap
+  // "Diagnostic-Code: smtp; 550" onto continuation lines, which previously
+  // left only the bare "550" and dropped the 5.x.x code and the reason text.
+  const text = (input.text ?? "").replace(/\r?\n[ \t]+/g, " ");
 
   const status = firstMatch(text, /\bstatus:\s*([245]\.\d{1,3}\.\d{1,3})/i);
   const diagnostic = tidy(
