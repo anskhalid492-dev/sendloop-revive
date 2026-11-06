@@ -271,6 +271,7 @@ export const getAnalyticsByCampaign = createServerFn({ method: "POST" })
       status: s.status,
       sent: s.sent,
       contacted: s.contacted,
+      accepted: s.accepted,
       delivered: s.delivered,
       opens: s.opened,
       clicks: s.clicked,
