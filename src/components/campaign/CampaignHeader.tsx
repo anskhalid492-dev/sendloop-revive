@@ -12,6 +12,15 @@ import {
   Rocket,
   Save,
   Send,
+  BarChart3,
+  Users,
+  Mail,
+  CalendarClock,
+  Mailbox,
+  SlidersHorizontal,
+  ChartNoAxesCombined,
+  Settings,
+  type LucideIcon,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +52,20 @@ export const CAMPAIGN_TABS = [
 ] as const;
 
 export type CampaignTab = (typeof CAMPAIGN_TABS)[number];
+
+/** Tabs shown in the navigation. Queue stays available internally but is hidden. */
+const VISIBLE_TABS = CAMPAIGN_TABS.filter((t) => t !== "Queue");
+
+const TAB_ICONS: Partial<Record<CampaignTab, LucideIcon>> = {
+  Overview: BarChart3,
+  Leads: Users,
+  Sequences: Mail,
+  Schedule: CalendarClock,
+  "Email Accounts": Mailbox,
+  Options: SlidersHorizontal,
+  Analytics: ChartNoAxesCombined,
+  Settings: Settings,
+};
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-muted text-muted-foreground border-border",
@@ -206,23 +229,27 @@ export function CampaignHeader({
         />
       ) : null}
 
-      <nav className="mt-4 flex gap-1 overflow-x-auto" aria-label="Campaign sections">
-        {CAMPAIGN_TABS.map((item) => (
+      <nav className="-mx-1 mt-4 flex gap-1 overflow-x-auto px-1 [scrollbar-width:none]" aria-label="Campaign sections">
+        {VISIBLE_TABS.map((item) => {
+          const Icon = TAB_ICONS[item];
+          return (
           <button
             key={item}
             type="button"
             onClick={() => onTabChange(item)}
             aria-current={tab === item ? "page" : undefined}
             className={cn(
-              "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors",
+              "-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 py-2 text-sm font-medium transition-colors sm:px-3",
               tab === item
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground",
             )}
           >
+            {Icon ? <Icon className="size-4 shrink-0" aria-hidden="true" /> : null}
             {item}
           </button>
-        ))}
+          );
+        })}
       </nav>
     </div>
   );
