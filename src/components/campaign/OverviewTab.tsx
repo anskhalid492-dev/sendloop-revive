@@ -139,9 +139,12 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
   const opened = delivery?.opened ?? 0;
   const clicked = delivery?.clicked ?? 0;
   const replied = delivery?.replied ?? queue?.replied ?? 0;
-  const bounced = delivery?.bounced ?? queue?.bounced ?? 0;
-  // Provider acceptance is not a delivery receipt.
-  const delivered = Math.max(confirmedDelivered, sent - bounced);
+  // Message-level bounces of emails that were actually sent (never the
+  // cancelled follow-ups of a recipient who bounced elsewhere).
+  const bounced = delivery?.bounced ?? 0;
+  // Confirmed delivery needs a per-message receipt; acceptance is never delivery.
+  const delivered = confirmedDelivered;
+  const positiveReplied = delivery?.positiveReplied ?? 0;
   const held = delivery?.held ?? 0;
   const failed = delivery?.failed ?? queue?.failed ?? 0;
   const delayed = delivery?.delayed ?? 0;
@@ -155,11 +158,16 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
 
   // Mutually exclusive current message outcomes, not overlapping engagement.
   const current = delivery?.currentOutcomes;
+  // Every distinct message ID appears in exactly one of these buckets.
   const funnel = [
-    { label: "Delivered", value: delivered, color: "bg-chart-3" },
-    { label: "Bounced", value: current?.bounced ?? bounced, color: "bg-destructive" },
-    { label: "Failed", value: current?.failed ?? failed, color: "bg-chart-4" },
-    { label: "Held for review", value: current?.held ?? held, color: "bg-chart-5" },
+    { label: "Queued", value: current?.queued ?? 0, color: "bg-muted-foreground/40" },
+    { label: "Sending", value: current?.sending ?? 0, color: "bg-primary/40" },
+    { label: "Accepted", value: current?.accepted ?? 0, color: "bg-primary" },
+    { label: "Confirmed delivered", value: current?.delivered ?? 0, color: "bg-chart-3" },
+    { label: "Bounced", value: current?.bounced ?? 0, color: "bg-destructive" },
+    { label: "Failed", value: current?.failed ?? 0, color: "bg-chart-4" },
+    { label: "Held for review", value: current?.held ?? 0, color: "bg-chart-5" },
+    { label: "Cancelled", value: current?.cancelled ?? 0, color: "bg-muted-foreground/20" },
   ];
   const funnelTotal = funnel.reduce((sum, f) => sum + f.value, 0);
 
@@ -209,7 +217,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           <Progress className="mt-1.5 h-2" value={progress} />
           <p className="mt-1 text-xs text-muted-foreground">
             {counters.scheduled.toLocaleString()} scheduled · {counters.processing.toLocaleString()} processing ·{" "}
-            {counters.sent.toLocaleString()} sent · {counters.failed.toLocaleString()} failed ·{" "}
+            {(current?.accepted ?? 0).toLocaleString()} accepted · {bounced.toLocaleString()} bounced · {counters.failed.toLocaleString()} failed ·{" "}
             {held.toLocaleString()} held for review · {counters.cancelled.toLocaleString()} cancelled · {completed} finished the sequence
           </p>
         </div>
@@ -217,10 +225,10 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
 
       {/* Headline performance */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <HeadlineCard icon={Send} label="Emails sent" value={sent} />
+        <HeadlineCard icon={Send} label="Accepted by mail server" value={sent} />
         <HeadlineCard
           icon={Mail}
-          label="Delivered"
+          label="Confirmed delivered"
           value={delivered}
           rateLabel={pct(rate(delivered, sent))}
         />
@@ -242,7 +250,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
       {/* Outcome mix + secondary counters */}
       <section className="surface-card space-y-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Send outcomes</h2>
+          <h2 className="text-sm font-semibold">Message outcomes</h2>
           <span className="text-xs text-muted-foreground">
             Bounce rate {pct(rate(bounced, sent))} · Unsubscribe rate{" "}
             {contacted ? `${unsubscribeRatePercent(unsubscribed, { contacted, bounced })}%` : "—"}
@@ -264,6 +272,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
                 ))}
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span className="font-medium text-foreground">{funnelTotal.toLocaleString()} distinct emails</span>
               {funnel.map((f) => (
                 <span key={f.label} className="flex items-center gap-1.5">
                   <span className={cn("size-2 rounded-full", f.color)} />
@@ -274,7 +283,7 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Outcome mix appears as soon as the first messages are delivered.
+            Outcomes appear as soon as the first emails are queued.
           </p>
         )}
 
@@ -286,25 +295,33 @@ export function OverviewTab({ builder }: { builder: CampaignBuilder }) {
             <div className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <MiniStat label="Total leads" value={totalLeads} />
               <MiniStat label="Contacted" value={contacted} />
-              <MiniStat label="Sent" value={sent} hint="Accepted by the provider" />
               <MiniStat label="Remaining" value={remainingTotal} hint="Never emailed yet" />
+              <MiniStat label="Accepted (total)" value={sent} hint="Accepted by the mail server" />
               <MiniStat
                 label="Bounced"
                 value={bounced}
-                hint="Never counted as delivered or failed"
+                hint="Sent emails rejected by the recipient's server"
                 tone={bounced > 0 ? "text-destructive" : undefined}
               />
               <MiniStat
                 label="Failed"
                 value={failed}
-                hint="Internal send failures only"
+                hint="Definitive sending failures"
                 tone={failed > 0 ? "text-destructive" : undefined}
               />
               <MiniStat label="Held for review" value={held} hint="Not failed; never resent automatically" />
-              <MiniStat label="Distinct attempted" value={delivery?.attempted ?? 0} />
-              <MiniStat label="Clicked" value={clicked} />
-              <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} />
+              <MiniStat label="Cancelled" value={delivery?.cancelled ?? 0} hint="Never sent" />
               <MiniStat label="Delayed" value={delayed} hint="Retrying" />
+            </div>
+            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Engagement (people)
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              <MiniStat label="Opened" value={opened} />
+              <MiniStat label="Clicked" value={clicked} />
+              <MiniStat label="Replies" value={replied} />
+              <MiniStat label="Positive replies" value={positiveReplied} />
+              <MiniStat label="Unsubscribed" value={unsubscribed} />
             </div>
             {failed > 0 ? (
               <div className="mt-3 flex flex-wrap items-center gap-3">

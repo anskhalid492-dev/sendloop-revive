@@ -401,6 +401,7 @@ export const getCampaign = createServerFn({ method: "GET" })
         opened: num(deliveryCounts["opened"]),
         clicked: num(deliveryCounts["clicked"]),
         replied: num(deliveryCounts["replied"]),
+        positiveReplied: canonical.positiveReplied,
         bounced: num(deliveryCounts["bounced"]),
         complained: num(deliveryCounts["complained"]),
         unsubscribed: num(deliveryCounts["unsubscribed"]),
