@@ -94,7 +94,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
   const deleteReplyFn = useServerFn(deleteReply);
 
 
-  const [status, setStatus] = useState<MessageStatus | "bounced" | "unsubscribed" | null>(null);
+  const [status, setStatus] = useState<MessageStatus | "bounced" | "unsubscribed" | "held" | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [detail, setDetail] = useState<QueueMessage | null>(null);
@@ -113,7 +113,8 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
       fetchQueue({
         data: {
           campaignId: builder.campaignId,
-          status: status === "bounced" || status === "unsubscribed" ? null : status,
+          status: status === "bounced" || status === "unsubscribed" || status === "held" ? null : status,
+          held: status === "held" ? true : undefined,
           bounced: status === "bounced" ? true : undefined,
           unsubscribed: status === "unsubscribed" ? true : undefined,
           search: search || undefined,
@@ -215,7 +216,8 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-9">
         {([...MESSAGE_STATUSES, "bounced", "unsubscribed"] as const).map((s) => (
-          <button
+          <Button
+            variant="outline"
             key={s}
             type="button"
             onClick={() => setStatus(status === s ? null : s)}
@@ -228,14 +230,14 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
               {s}
             </p>
             <p className="text-xl font-semibold tabular-nums">{counts?.[s] ?? 0}</p>
-          </button>
+          </Button>
         ))}
-        <div className="surface-card px-4 py-3 text-left" title="Interrupted or timed-out sends whose outcome is unknown. Never resent automatically.">
+        <Button variant="outline" onClick={() => setStatus(status === "held" ? null : "held")} className="surface-card h-auto flex-col items-start px-4 py-3 text-left" title="Interrupted or timed-out sends whose outcome is unknown. Never resent automatically.">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             held for review
           </p>
           <p className="text-xl font-semibold tabular-nums">{(counts as { unknown?: number } | undefined)?.unknown ?? 0}</p>
-        </div>
+        </Button>
       </div>
 
       {byMailbox.length ? (
@@ -436,7 +438,7 @@ export function QueueTab({ builder }: { builder: CampaignBuilder }) {
                         variant="outline"
                         className={bounceOf(m) ? STATUS_STYLES.bounced : STATUS_STYLES[m.status]}
                       >
-                        {bounceOf(m) ? "bounced" : m.status}
+                        {m.outcome === "held" ? "Held for review" : m.outcome === "delivered" ? "Confirmed delivered" : bounceOf(m) ? "bounced" : m.status}
                       </Badge>
                       {!bounceOf(m) && m.status === "failed" && failureOf(m) ? (
                         <p className="mt-0.5 max-w-[16rem] text-xs text-muted-foreground">
