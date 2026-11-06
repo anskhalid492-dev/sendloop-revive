@@ -223,8 +223,10 @@ export const getCampaign = createServerFn({ method: "GET" })
         totalLeads: totalRecipients,
         contacted: contactedLeads,
         sent: sentTotal,
+        accepted: canonical.accepted,
         delivered: canonical.delivered,
         held: canonical.held,
+        leadOutcomes: canonical.leadOutcomes,
         attempted: canonical.attempted,
         currentOutcomes: canonical.currentOutcomes,
         delayed: numberValue(deliveryCounts["delayed"]),
@@ -255,7 +257,8 @@ export const getCampaign = createServerFn({ method: "GET" })
         ...runStatus,
         dailyQuota,
         sentThisRun: sentTodayCount,
-        retryableFailures: numberValue(summary["retryable_failures"]),
+        // Never held: computed from the shared message-outcome rules, not the legacy RPC.
+        retryableFailures: canonical.retryable,
       },
     };
     logPhase("transform", phaseStartedAt);
