@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _outcome_rpc_backup_2026_11: {
+        Row: {
+          definition: string
+          proname: string
+          saved_at: string
+        }
+        Insert: {
+          definition: string
+          proname: string
+          saved_at?: string
+        }
+        Update: {
+          definition?: string
+          proname?: string
+          saved_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_log: {
         Row: {
           action: string
