@@ -72,7 +72,7 @@ export type AdminCampaignRow = {
   leads: number;
   /** Accepted by the mailbox/provider. */
   sent: number;
-  /** Estimate: sent minus bounces of those sends (no SMTP delivery receipts). */
+  /** Confirmed delivered: explicit per-message delivery receipts only. */
   delivered: number;
   deliveryRate: number | null;
   opens: number;
@@ -285,13 +285,12 @@ export async function listAdminCampaigns(filters: AdminCampaignFilters = {}) {
   const rows = campaigns.map((c): AdminCampaignRow => {
     const owner = owners[c.created_by] ?? { email: null, name: null };
     const t = totals[c.id] ?? emptyTotals();
-    // Bounce events without a message id cannot be matched to a send; they
-    // only add to bounces when they do not exceed recorded sends.
-    const extraBounces = Math.min(bounceEventsNoMessage[c.id] ?? 0, Math.max(0, t.sent - t.bouncedAfterSend));
+    // Message-ID based only: bounce events that cannot be matched to a sent
+    // message are never added to the bounce count.
     const metrics = {
       ...t,
-      bounced: t.bounced + extraBounces,
-      bouncedAfterSend: t.bouncedAfterSend + extraBounces,
+      bounced: t.bounced,
+      bouncedAfterSend: t.bouncedAfterSend,
       leads: recipientCounts[c.id] ?? 0,
       contacted: contactedPeople[c.id]?.size ?? 0,
       opens: openKeys[c.id]?.size ?? 0,
