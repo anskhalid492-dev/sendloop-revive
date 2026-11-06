@@ -19,7 +19,11 @@ export type AnalyticsSummary = {
   failureHistoryIncomplete?: boolean;
   /** Known unsent failures without a reliable date, kept separate from period totals. */
   undatedFailed?: number;
+  /** Cumulative: accepted by the provider in the period. */
   sent: number;
+  /** Current outcome: accepted, with no later receipt, bounce or failure. */
+  accepted?: number;
+  /** Confirmed delivered: explicit per-message receipts only. */
   delivered: number;
   opens: number;
   clicks: number;
@@ -62,6 +66,7 @@ export type AnalyticsCampaignRow = {
   sent: number;
   /** Unique people emailed — the denominator for people-based rates. */
   contacted?: number;
+  accepted?: number;
   delivered: number;
   opens: number;
   clicks: number;
@@ -136,5 +141,5 @@ export function formatCount(value: number): string {
 }
 
 export function deliveryPresentation(r: AnalyticsSummary): { value: string; description: string } {
-  return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} of sent · sent minus bounced` };
+  return { value: formatCount(r.delivered), description: `${formatPct(rate(r.delivered, r.sent))} of sent · delivery receipts only` };
 }
