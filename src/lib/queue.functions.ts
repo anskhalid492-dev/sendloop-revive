@@ -9,6 +9,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { countMessageOutcomes, messageOutcome, type OutcomeFacts } from "@/lib/message-outcomes";
 import { fetchAllRows } from "@/lib/supabase-batch";
+import { selectQueueCardIds, type QueueCardKey, type QueueInventoryRow } from "@/lib/queue-card-filter";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -78,39 +79,48 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    let query = context.supabase
-      .from("campaign_messages")
-      .select(QUEUE_COLUMNS)
-      .eq("campaign_id", data.campaignId)
-      .order("scheduled_at", { ascending: true, nullsFirst: false })
-      .limit(data.limit);
-    if (data.status) query = query.eq("status", data.status);
-    if (data.status === "sent") query = query.is("bounced_at", null).is("delivered_at", null).is("failed_at", null);
-    // Bounces are their own outcome: a bounced message never counts as failed,
-    // and failed never includes bounced rows.
-    if (data.status === "failed") query = query.is("bounced_at", null).is("delivered_at", null).lt("attempts", 999).or("last_error.is.null,last_error.not.ilike.%send_outcome_unknown%");
-    if (data.delivered) query = query.not("delivered_at", "is", null).is("bounced_at", null);
-    if (data.held) query = query.is("bounced_at", null).is("delivered_at", null).or("attempts.gte.999,last_error.ilike.%send_outcome_unknown%");
-    // A recipient who bounced or unsubscribed mid-sequence has their remaining
-    // mail cancelled with the reason attached — include those rows here too.
-    if (data.bounced) {
-      // Bounced = a SENT message with a recorded rejection; never a cancelled follow-up.
-      query = query.or("bounced_at.not.is.null,delivery_status.eq.bounced").neq("status", "cancelled");
-    }
-    if (data.unsubscribed) {
-      query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
-    }
-    if (data.search) query = query.ilike("to_email", `%${data.search}%`);
-
     // Paged distinct-ID inventory uses the same classifier as all reporting.
-    const [messagesRes, inventory] = await Promise.all([
-      query,
-      fetchAllRows<OutcomeFacts & { sending_account_id?: string | null }>(() => context.supabase
-        .from("campaign_messages")
-        .select("id,status,delivery_status,sent_at,delivered_at,bounced_at,failed_at,last_error,attempts,updated_at,sending_account_id")
-        .eq("campaign_id", data.campaignId).order("id")),
-    ]);
+    const inventory = await fetchAllRows<QueueInventoryRow & { sending_account_id?: string | null }>(() => context.supabase
+      .from("campaign_messages")
+      .select("id,status,delivery_status,sent_at,delivered_at,bounced_at,failed_at,last_error,attempts,updated_at,sending_account_id,scheduled_at,to_email")
+      .eq("campaign_id", data.campaignId).order("id"));
     const total = inventory.length;
+
+    // Outcome cards drill down through the SAME classifier that counts them,
+    // so every card's number matches the emails it opens.
+    const card: QueueCardKey | null = data.held ? "held"
+      : data.delivered ? "delivered"
+      : data.bounced ? "bounced"
+      : data.status ?? null;
+
+    let messagesRes: { data: unknown[] | null; error: { message: string } | null };
+    if (card) {
+      const ids = selectQueueCardIds(inventory, card, { search: data.search, limit: data.limit });
+      const rows: Record<string, unknown>[] = [];
+      for (let i = 0; i < ids.length; i += 100) {
+        const res = await context.supabase.from("campaign_messages").select(QUEUE_COLUMNS)
+          .eq("campaign_id", data.campaignId).in("id", ids.slice(i, i + 100));
+        if (res.error) throw new Error(res.error.message);
+        rows.push(...((res.data ?? []) as unknown as Record<string, unknown>[]));
+      }
+      const order = new Map(ids.map((id, index) => [id, index]));
+      rows.sort((a, b) => (order.get(String(a.id)) ?? 0) - (order.get(String(b.id)) ?? 0));
+      messagesRes = { data: rows, error: null };
+    } else {
+      let query = context.supabase
+        .from("campaign_messages")
+        .select(QUEUE_COLUMNS)
+        .eq("campaign_id", data.campaignId)
+        .order("scheduled_at", { ascending: true, nullsFirst: false })
+        .limit(data.limit);
+      // A recipient who unsubscribed mid-sequence has their remaining mail
+      // cancelled with the reason attached — include those rows here too.
+      if (data.unsubscribed) {
+        query = query.or("unsubscribed_at.not.is.null,cancelled_reason.eq.recipient_unsubscribed");
+      }
+      if (data.search) query = query.ilike("to_email", `%${data.search}%`);
+      messagesRes = (await query) as unknown as typeof messagesRes;
+    }
 
     if (messagesRes.error) throw new Error(messagesRes.error.message);
     const { customerSafeMessage } = await import("@/lib/managed-sending.server");
