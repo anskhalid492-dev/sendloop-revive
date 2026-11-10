@@ -93,18 +93,18 @@ export const listCampaignQueue = createServerFn({ method: "GET" })
       : data.bounced ? "bounced"
       : data.status ?? null;
 
-    let messagesRes: { data: unknown[] | null; error: { message: string } | null };
+    let messagesRes: { data: { id: string }[] | null; error: { message: string } | null };
     if (card) {
       const ids = selectQueueCardIds(inventory, card, { search: data.search, limit: data.limit });
-      const rows: Record<string, unknown>[] = [];
+      const rows: { id: string }[] = [];
       for (let i = 0; i < ids.length; i += 100) {
         const res = await context.supabase.from("campaign_messages").select(QUEUE_COLUMNS)
           .eq("campaign_id", data.campaignId).in("id", ids.slice(i, i + 100));
         if (res.error) throw new Error(res.error.message);
-        rows.push(...((res.data ?? []) as unknown as Record<string, unknown>[]));
+        rows.push(...((res.data ?? []) as unknown as { id: string }[]));
       }
       const order = new Map(ids.map((id, index) => [id, index]));
-      rows.sort((a, b) => (order.get(String(a.id)) ?? 0) - (order.get(String(b.id)) ?? 0));
+      rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
       messagesRes = { data: rows, error: null };
     } else {
       let query = context.supabase

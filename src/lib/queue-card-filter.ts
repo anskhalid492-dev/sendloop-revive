@@ -45,7 +45,7 @@ export function rowMatchesQueueCard(row: QueueInventoryRow, card: QueueCardKey):
 export function selectQueueCardIds(
   inventory: readonly QueueInventoryRow[],
   card: QueueCardKey,
-  options: { search?: string; limit: number },
+  options: { search?: string | undefined; limit: number },
 ): string[] {
   const needle = options.search?.trim().toLowerCase();
   return mergeMessageSnapshots(inventory)
