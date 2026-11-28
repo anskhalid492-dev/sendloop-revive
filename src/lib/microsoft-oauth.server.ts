@@ -1,12 +1,8 @@
 import { z } from "zod";
 
 export const MICROSOFT_REDIRECT_URI = "https://munchreach.com/api/public/integrations/microsoft/callback";
-export const MICROSOFT_SCOPES = [
-  "https://graph.microsoft.com/Mail.Send",
-  "https://graph.microsoft.com/Mail.Read",
-  "https://graph.microsoft.com/User.Read",
-  "openid", "profile", "email", "offline_access",
-] as const;
+// Exact delegated scope string: no .default and no other resource, so the access token is issued for Graph only.
+export const MICROSOFT_SCOPES = ["openid", "profile", "email", "offline_access", "User.Read", "Mail.Read", "Mail.Send"] as const;
 export const MICROSOFT_COOKIE = "__Host-munchreach-microsoft-oauth";
 export const TRANSACTION_SECONDS = 600;
 
@@ -14,7 +10,7 @@ const configSchema = z.object({
   clientId: z.string().uuid(),
   clientSecret: z.string().min(1),
   // Fixed allowlist: a single-tenant directory id, or Microsoft's well-known multitenant endpoints.
-  tenantId: z.union([z.string().uuid(), z.enum(["organizations", "common"])]),
+  tenantId: z.union([z.string().uuid(), z.enum(["organizations", "common", "consumers"])]),
   redirectUri: z.literal(MICROSOFT_REDIRECT_URI),
 });
 export type MicrosoftConfig = z.infer<typeof configSchema>;

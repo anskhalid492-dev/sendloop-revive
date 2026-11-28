@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph, connectMicrosoftMailbox, isMicrosoftSmtpMailbox, inboxVerificationFailure } from "@/lib/microsoft-graph.server";
+import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph, connectMicrosoftMailbox, isMicrosoftSmtpMailbox, inboxVerificationFailure, accessTokenClaims } from "@/lib/microsoft-graph.server";
 import { microsoftConfig, MICROSOFT_REDIRECT_URI, parseTokenResponse } from "@/lib/microsoft-oauth.server";
 
 // Offline fixtures only: fake in-memory table, stubbed fetch, no real credentials or customer data.
@@ -31,7 +31,7 @@ async function fakeAdmin(expiresAt: number) {
 }
 
 describe("Microsoft Graph mailbox", () => {
-  it.each(["ErrorAccessDenied", "InvalidAuthenticationToken", "MailboxNotEnabledForRESTAPI", "ErrorItemNotFound", "TooManyRequests"])("retains only an allowlisted inbox failure code: %s", async (code) => {
+  it.each(["ErrorAccessDenied", "InvalidAuthenticationToken", "MailboxNotEnabledForRESTAPI", "ErrorItemNotFound", "TooManyRequests", "OrganizationFromTenantGuidNotFound"])("retains only an allowlisted inbox failure code: %s", async (code) => {
     const failure = await inboxVerificationFailure(Response.json({ error: { code, message: "private-provider-body", innerError: { id: "private-id" } } }, { status: 403 }));
     expect(failure.code).toBe(code);
     expect(failure.status).toBe(403);
@@ -45,6 +45,25 @@ describe("Microsoft Graph mailbox", () => {
     const nonJson = await inboxVerificationFailure(new Response("private-html", { status: 502 }));
     expect(nonJson.status).toBe(502);
     expect(nonJson.code).toBe("Unspecified");
+  });
+  it("logs the full Graph error body and the access token's scp/aud, never the token", async () => {
+    const payload = btoa(JSON.stringify({ scp: "Mail.Read Mail.Send User.Read", aud: "https://graph.microsoft.com" })).replace(/=+$/, "");
+    const token = `eyJhbGciOiJub25lIn0.${payload}.offline-signature`;
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failure = await inboxVerificationFailure(Response.json({ error: { code: "InvalidAuthenticationToken", message: "Access token validation failure." } },
+      { status: 401, headers: { "www-authenticate": "Bearer error=\"invalid_token\"" } }), token);
+    expect(failure.status).toBe(401);
+    const logged = log.mock.calls.map(c => c.join(" ")).join("\n");
+    expect(logged).toContain("Access token validation failure.");
+    expect(logged).toContain("InvalidAuthenticationToken");
+    expect(logged).toContain("Mail.Read Mail.Send User.Read");
+    expect(logged).toContain("https://graph.microsoft.com");
+    expect(logged).toContain("invalid_token");
+    expect(logged).not.toContain("offline-signature");
+    log.mockRestore();
+  });
+  it("reports opaque personal-account access tokens without logging them", () => {
+    expect(accessTokenClaims("EwBopaque-personal-account-token")).toEqual({ format: "opaque", scp: null, aud: null, tid: null });
   });
   it("restricts in-place upgrades to Microsoft SMTP and IMAP hosts", () => {
     expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp.office365.com", imap_host: "outlook.office365.com" })).toBe(true);
@@ -72,7 +91,9 @@ describe("Microsoft Graph mailbox", () => {
       };
       return q;
     } };
-    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => {
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      expect(String(input)).toBe("https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=1");
+      expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer offline-access");
       expect(stored?.["encrypted_tokens"]).toBeTypeOf("string");
       expect(mailbox.smtp_host).toBe("smtp.office365.com");
       return new Response(null, { status });

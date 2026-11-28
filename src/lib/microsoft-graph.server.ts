@@ -102,9 +102,41 @@ async function graph(token: string, path: string, init: RequestInit = {}, fetche
   return fetcher(`${GRAPH}${path}`, { ...init, headers, redirect: "manual", signal: init.signal ?? AbortSignal.timeout(15_000) });
 }
 
-/** Only allowlisted error codes are exposed; never forward Graph bodies, messages or identifiers. */
-export async function inboxVerificationFailure(response: Response): Promise<{ status: number; code: string; message: string }> {
-  const parsed = z.object({ error: z.object({ code: z.string() }) }).safeParse(await response.json().catch(() => null));
+/**
+ * Non-secret claims of a Graph access token for diagnostics. Personal Microsoft account
+ * tokens are usually opaque (not a readable JWT), which is reported as such. Never returns the token.
+ */
+export function accessTokenClaims(token: string): { format: string; scp: string | null; aud: string | null; tid: string | null } {
+  const parts = token.split(".");
+  const payload = parts[1];
+  if (parts.length !== 3 || !payload) return { format: parts.length === 5 ? "encrypted (JWE)" : "opaque", scp: null, aud: null, tid: null };
+  try {
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "="));
+    const c = z.object({ scp: z.string().nullish(), aud: z.string().nullish(), tid: z.string().nullish() }).safeParse(JSON.parse(json));
+    if (!c.success) return { format: "jwt (unreadable claims)", scp: null, aud: null, tid: null };
+    return { format: "jwt", scp: c.data.scp ?? null, aud: c.data.aud ?? null, tid: c.data.tid ?? null };
+  } catch { return { format: "jwt (unreadable claims)", scp: null, aud: null, tid: null }; }
+}
+
+/** Server-log-only diagnostics for a failed Graph call: full error body plus token scp/aud, never the token itself. */
+export function logGraphFailure(context: string, response: Response, bodyText: string, token?: string) {
+  console.error(`[microsoft-graph] ${context} failed`, JSON.stringify({
+    status: response.status,
+    body: bodyText.slice(0, 4000),
+    wwwAuthenticate: response.headers.get("www-authenticate"),
+    requestId: response.headers.get("request-id"),
+    clientRequestId: response.headers.get("client-request-id"),
+    token: token ? accessTokenClaims(token) : null,
+  }));
+}
+
+/** Only allowlisted error codes are exposed to the user; the full Graph body goes to server logs only. */
+export async function inboxVerificationFailure(response: Response, token?: string): Promise<{ status: number; code: string; message: string }> {
+  const bodyText = await response.text().catch(() => "");
+  logGraphFailure("inbox check", response, bodyText, token);
+  let body: unknown = null;
+  try { body = JSON.parse(bodyText); } catch { body = null; }
+  const parsed = z.object({ error: z.object({ code: z.string() }) }).safeParse(body);
   const known: Record<string, string> = {
     ErrorAccessDenied: "Microsoft denied inbox access. Check delegated Mail.Read consent and your organization's access policies.",
     Authorization_RequestDenied: "Microsoft denied inbox access. Check delegated Mail.Read consent and your organization's access policies.",
@@ -113,6 +145,7 @@ export async function inboxVerificationFailure(response: Response): Promise<{ st
     ErrorMailboxNotEnabledForRESTAPI: "Microsoft reports this account's mailbox is unavailable through Graph. Confirm that Outlook web opens the mailbox; organizational accounts may require an Exchange Online mailbox.",
     ErrorItemNotFound: "Microsoft could not find this account's inbox. Confirm the mailbox opens in Outlook web.",
     TooManyRequests: "Microsoft temporarily limited inbox requests. Wait and try Microsoft sign-in again.",
+    OrganizationFromTenantGuidNotFound: "Microsoft signed this account in through an organization directory that has no Outlook mailbox. Personal Outlook.com accounts must sign in as a personal Microsoft account.",
   };
   const rawCode = parsed.success ? parsed.data.error.code : "";
   const code = Object.hasOwn(known, rawCode) ? rawCode : "Unspecified";
@@ -265,9 +298,9 @@ export async function connectMicrosoftMailbox(admin: Admin, tx: MicrosoftTransac
   }, { onConflict: "mailbox_id" });
   if (tokenError) throw new Error("Microsoft credentials could not be stored securely. No mailbox was connected.");
   const token = await getGraphAccessToken(admin, mailboxId, { ...(deps.fetcher ? { fetcher: deps.fetcher } : {}), now });
-  const check = await graph(token, "/me/mailFolders/inbox?$select=id", {}, deps.fetcher);
+  const check = await graph(token, "/me/mailFolders/inbox/messages?$top=1", {}, deps.fetcher);
   if (!check.ok) {
-    const failure = await inboxVerificationFailure(check);
+    const failure = await inboxVerificationFailure(check, token);
     await admin.from("microsoft_mailbox_tokens").update({ status: "error", last_error: failure.message }).eq("mailbox_id", mailboxId);
     throw new MicrosoftInboxVerificationError(failure.message);
   }

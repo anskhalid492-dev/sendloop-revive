@@ -30,7 +30,7 @@ describe("Microsoft mailbox OAuth preparation", () => {
     expect(() => microsoftConfig({ ...config, tenantId: "" })).toThrow();
   });
   it("accepts a single-tenant directory id and the multitenant endpoint aliases", async () => {
-    for (const tenantId of ["44444444-4444-4444-8444-444444444444", "organizations", "common"]) {
+    for (const tenantId of ["44444444-4444-4444-8444-444444444444", "organizations", "common", "consumers"]) {
       const scoped = microsoftConfig({ ...config, tenantId });
       expect(scoped.tenantId).toBe(tenantId);
       const prepared = await prepareMicrosoftConsent(scoped, userId, workspaceId, now);
@@ -41,10 +41,8 @@ describe("Microsoft mailbox OAuth preparation", () => {
     const { prepared, tx } = await transaction();
     const url = new URL(prepared.authorizationUrl);
     expect(url.origin).toBe("https://login.microsoftonline.com");
-    expect(url.searchParams.get("scope")?.split(" ")).toEqual([
-      "https://graph.microsoft.com/Mail.Send", "https://graph.microsoft.com/Mail.Read", "https://graph.microsoft.com/User.Read",
-      "openid", "profile", "email", "offline_access",
-    ]);
+    expect(url.pathname).toBe(`/${tx.tenantId}/oauth2/v2.0/authorize`);
+    expect(url.searchParams.get("scope")).toBe("openid profile email offline_access User.Read Mail.Read Mail.Send");
     expect(url.searchParams.get("redirect_uri")).toBe("https://munchreach.com/api/public/integrations/microsoft/callback");
     expect(url.searchParams.get("response_type")).toBe("code");
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
