@@ -255,6 +255,18 @@ export async function listGraphMessages(token: string, folder: "inbox" | "junkem
 }
 
 /**
+ * A mailbox stays bound to the Microsoft account that first passed the inbox check.
+ * Tokens from attempts that never verified (e.g. a wrong-tenant sign-in) may be replaced.
+ */
+export function microsoftIdentityConflict(
+  prior: { microsoft_user_id: string | null; verified_at?: string | null } | null | undefined,
+  microsoftUserId: string,
+): boolean {
+  if (!prior || !prior.verified_at) return false;
+  return prior.microsoft_user_id !== microsoftUserId;
+}
+
+/**
  * Persists a completed authorization. The mailbox is marked connected only after
  * the tokens are stored encrypted AND a Mail.Read call made with the stored,
  * decrypted token succeeds.
@@ -283,9 +295,9 @@ export async function connectMicrosoftMailbox(admin: Admin, tx: MicrosoftTransac
     if (error || !created) throw new Error("The mailbox could not be saved.");
     mailboxId = created.id;
   }
-  const { data: prior } = await admin.from("microsoft_mailbox_tokens").select("microsoft_user_id, token_version, inbox_cursor")
+  const { data: prior } = await admin.from("microsoft_mailbox_tokens").select("microsoft_user_id, token_version, inbox_cursor, verified_at")
     .eq("mailbox_id", mailboxId).maybeSingle();
-  if (prior && prior.microsoft_user_id !== grant.profile.id) throw new Error("A different Microsoft account signed in for this mailbox.");
+  if (microsoftIdentityConflict(prior, grant.profile.id)) throw new Error("A different Microsoft account signed in for this mailbox.");
   const { encryptCredentials } = await crypto_();
   const { error: tokenError } = await admin.from("microsoft_mailbox_tokens").upsert({
     mailbox_id: mailboxId, workspace_id: tx.workspaceId, microsoft_user_id: grant.profile.id, email_address: email,

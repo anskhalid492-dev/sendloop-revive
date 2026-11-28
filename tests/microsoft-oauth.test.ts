@@ -145,3 +145,14 @@ describe("Microsoft mailbox OAuth preparation", () => {
     await expect(verifyMicrosoftCode(config, tx, "offline-code", badIdentity)).rejects.toThrow("account verification failed");
   });
 });
+describe("microsoftIdentityConflict", () => {
+  it("allows replacing tokens from an attempt that never verified", async () => {
+    const { microsoftIdentityConflict } = await import("@/lib/microsoft-graph.server");
+    expect(microsoftIdentityConflict({ microsoft_user_id: "guest-id", verified_at: null }, "personal-id")).toBe(false);
+  });
+  it("blocks a different account once the mailbox was verified", async () => {
+    const { microsoftIdentityConflict } = await import("@/lib/microsoft-graph.server");
+    expect(microsoftIdentityConflict({ microsoft_user_id: "a", verified_at: "2026-11-28T00:00:00Z" }, "b")).toBe(true);
+    expect(microsoftIdentityConflict({ microsoft_user_id: "a", verified_at: "2026-11-28T00:00:00Z" }, "a")).toBe(false);
+  });
+});
