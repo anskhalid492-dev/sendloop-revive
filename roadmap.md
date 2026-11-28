@@ -3,8 +3,9 @@
 ## Microsoft 365 Graph mailboxes
 - [x] Callback exchanges code with validated state/PKCE, stores encrypted tokens, verifies inbox access before marking connected.
 - [x] Graph sending (Mail.Send), Inbox/Junk sync into existing reply/bounce/warmup pipeline, token refresh with rotation, disconnect/reconnect UI; 2,200 offline tests pass.
+- [x] Tenant value settled: app supports "Any Entra ID tenant + personal Microsoft accounts", so MICROSOFT_TENANT_ID must be `common`; code now accepts `common` (previously only a directory GUID or `organizations`).
 - [ ] Owner applies supabase/manual/microsoft-graph-mailboxes.sql to production — blocked: manual production SQL.
-- [ ] Add the four Microsoft secrets, publish, and test with a named throwaway Microsoft 365 mailbox (consent, send, reply, refresh, disconnect/reconnect) — blocked: owner secrets and publish approval.
+- [ ] Publish so the live site accepts `common`, then test with a named throwaway mailbox (consent, send, reply, refresh, disconnect/reconnect) — blocked: publish approval.
 
 ## Campaign sending reconciliation
 - [x] Audit Agencies - Free Trials and all 116 held IDs read-only; 20 have pixel events, none has recorded acceptance/delivery/rejection evidence.
