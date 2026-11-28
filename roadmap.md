@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Microsoft 365 Graph mailboxes
+- [x] Add personal-account address fallback (Graph mail → UPN → ID-token preferred_username → email) with offline callback regression coverage; real Microsoft sign-in remains unverified.
 - [x] Callback exchanges code with validated state/PKCE, stores encrypted tokens, verifies inbox access before marking connected.
 - [x] Graph sending (Mail.Send), Inbox/Junk sync into existing reply/bounce/warmup pipeline, token refresh with rotation, disconnect/reconnect UI; 2,200 offline tests pass.
 - [x] Tenant value settled: app supports "Any Entra ID tenant + personal Microsoft accounts", so MICROSOFT_TENANT_ID must be `common`; code now accepts `common` (previously only a directory GUID or `organizations`).

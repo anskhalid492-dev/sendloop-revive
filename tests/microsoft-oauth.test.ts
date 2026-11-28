@@ -93,6 +93,37 @@ describe("Microsoft mailbox OAuth preparation", () => {
     expect(body.get("redirect_uri")).toBe(MICROSOFT_REDIRECT_URI);
     expect(fetcher.mock.calls[1]?.[0]).toBe("https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName,displayName");
   });
+  it.each([
+    { mail: "Mail@Example.test", upn: "upn@example.test", preferred: "preferred@example.test", email: "email@example.test", expected: "mail@example.test" },
+    { mail: null, upn: "UPN@Example.test", preferred: "preferred@example.test", email: "email@example.test", expected: "upn@example.test" },
+    { mail: "  ", upn: null, preferred: "Preferred@Example.test", email: "email@example.test", expected: "preferred@example.test" },
+    { mail: null, upn: "", preferred: "  ", email: " Email@Example.test ", expected: "email@example.test" },
+  ])("resolves the mailbox in mail → UPN → preferred_username → email order: $expected", async ({ mail, upn, preferred, email, expected }) => {
+    const { tx } = await transaction();
+    // Synthetic token, never sent to a provider or used to authorize an account.
+    const idToken = `e30.${btoa(JSON.stringify({ preferred_username: preferred, email })).replace(/=+$/, "")}.offline`;
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ access_token: "offline-access-fixture",
+      refresh_token: "offline-refresh-fixture", token_type: "Bearer", scope: MICROSOFT_SCOPES.join(" "), id_token: idToken }))
+      .mockResolvedValueOnce(Response.json({ id: "throwaway-microsoft-identity", mail, userPrincipalName: upn }));
+    const grant = await verifyMicrosoftCode(config, tx, "offline-code", fetcher);
+    expect(grant.profile.email).toBe(expected);
+    expect(grant.profile.id).toBe("throwaway-microsoft-identity");
+  });
+  it.each([undefined, "malformed", "e30.bm90LWpzb24.offline"])("reports no address only when all address sources are empty (token %s)", async (idToken) => {
+    const { tx } = await transaction();
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ access_token: "offline-access-fixture",
+      refresh_token: "offline-refresh-fixture", token_type: "Bearer", scope: MICROSOFT_SCOPES.join(" "),
+      ...(idToken ? { id_token: idToken } : {}) }))
+      .mockResolvedValueOnce(Response.json({ id: "throwaway-microsoft-identity", mail: null, userPrincipalName: " " }));
+    await expect(verifyMicrosoftCode(config, tx, "offline-code", fetcher)).rejects.toThrow("no usable mailbox address");
+  });
+  it("does not misreport a nonempty invalid address as a missing address", async () => {
+    const { tx } = await transaction();
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ access_token: "offline-access-fixture",
+      refresh_token: "offline-refresh-fixture", token_type: "Bearer", scope: MICROSOFT_SCOPES.join(" ") }))
+      .mockResolvedValueOnce(Response.json({ id: "throwaway-microsoft-identity", mail: "not-an-email" }));
+    await expect(verifyMicrosoftCode(config, tx, "offline-code", fetcher)).rejects.toThrow("invalid email format");
+  });
   it("rejects replayed codes without disclosing provider bodies", async () => {
     const { tx } = await transaction();
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ error: "invalid_grant", detail: "sensitive-provider-body" }, { status: 400 }));

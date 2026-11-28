@@ -89,6 +89,19 @@ export type MicrosoftTokenGrant = {
 };
 const tokenSchema = z.object({ access_token: z.string().min(1), refresh_token: z.string().min(1),
   token_type: z.string(), scope: z.string(), expires_in: z.coerce.number().int().positive().max(86_400).optional() });
+/** Address hints only, from the server-side code exchange; never used to authorize or identify the account. */
+function mailboxHints(body: unknown): { preferred_username?: string | undefined; email?: string | undefined } {
+  const token = z.object({ id_token: z.string() }).safeParse(body);
+  if (!token.success) return {};
+  try {
+    const parts = token.data.id_token.split(".");
+    const payload = parts[1];
+    if (parts.length !== 3 || !payload) return {};
+    const claims = z.object({ preferred_username: z.string().optional(), email: z.string().optional() })
+      .safeParse(JSON.parse(new TextDecoder().decode(decode(payload))));
+    return claims.success ? claims.data : {};
+  } catch { return {}; }
+}
 export function hasRequiredMailScopes(scope: string): boolean {
   const granted = new Set(scope.split(" ").map(s => s.replace(/^https:\/\/graph\.microsoft\.com\//i, "").toLowerCase()));
   return ["mail.send", "mail.read", "user.read"].every(s => granted.has(s));
@@ -113,15 +126,20 @@ export async function verifyMicrosoftCode(config: MicrosoftConfig, tx: Microsoft
       code_verifier: tx.verifier, scope: MICROSOFT_SCOPES.join(" ") }),
   });
   if (!response.ok) throw new Error("Microsoft authorization exchange failed.");
-  const tokens = parseTokenResponse(await response.json());
+  const tokenBody: unknown = await response.json();
+  const tokens = parseTokenResponse(tokenBody);
   const me = await fetcher("https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName,displayName", {
     headers: { Authorization: `Bearer ${tokens.accessToken}` }, redirect: "manual", signal: AbortSignal.timeout(12_000),
   });
   const profile = me.ok ? z.object({ id: z.string().min(1), mail: z.string().nullish(), userPrincipalName: z.string().nullish(),
     displayName: z.string().nullish() }).safeParse(await me.json()) : null;
   if (!profile?.success) throw new Error("Microsoft account verification failed.");
-  const email = z.string().email().safeParse((profile.data.mail || profile.data.userPrincipalName || "").trim().toLowerCase());
-  if (!email.success) throw new Error("Microsoft account has no usable mailbox address.");
+  const hints = mailboxHints(tokenBody);
+  const address = [profile.data.mail, profile.data.userPrincipalName, hints.preferred_username, hints.email]
+    .map(value => value?.trim() ?? "").find(value => value.length > 0);
+  if (!address) throw new Error("Microsoft account has no usable mailbox address.");
+  const email = z.string().email().safeParse(address.toLowerCase());
+  if (!email.success) throw new Error("Microsoft mailbox address has an invalid email format.");
   return { ...tokens, profile: { id: profile.data.id, email: email.data, displayName: profile.data.displayName ?? null } };
 }
 

@@ -9,6 +9,7 @@
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
 - Microsoft 365 mailboxes use Graph (src/lib/microsoft-graph.server.ts): a normal `mailboxes` row marked by smtp_host/imap_host `graph.microsoft.com` with null passwords, tokens AES-GCM-encrypted only in service-role-only `microsoft_mailbox_tokens` with token_version compare-and-swap refresh; connected is set only after stored tokens pass a Mail.Read check, because this needs no mailboxes schema change and never uses SMTP AUTH.
+- Microsoft mailbox addresses resolve Graph mail → userPrincipalName → code-exchange ID-token preferred_username → email; token claims are address hints only and Graph remains the verified account identity, because personal accounts may omit Graph mail.
 - Workers use atomic `acquireWorkerLease`/`releaseWorkerLease` (src/lib/worker-lease.server.ts), never read-then-write checks, to prevent overlapping cron races.
 - Workers read `platform_settings.worker_mode` each tick via `getWorkerMode` (src/lib/worker-mode.server.ts); only "queue" selects queues, otherwise legacy runs, preserving flag-based rollback.
 - Tests block production network via tests/setup/block-production-network.ts in vite.config.ts: the hard-pinned server client otherwise leaks unmocked fixture writes.
