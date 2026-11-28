@@ -8,7 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
-- Microsoft mailbox OAuth preparation uses an authenticated server function and a public server callback with encrypted, expiring browser-bound state and PKCE; verification does not persist tokens or connect a mailbox, keeping existing SMTP/IMAP transports unchanged until a separately approved adapter stage.
+- Microsoft 365 mailboxes use Graph (src/lib/microsoft-graph.server.ts): a normal `mailboxes` row marked by smtp_host/imap_host `graph.microsoft.com` with null passwords, tokens AES-GCM-encrypted only in service-role-only `microsoft_mailbox_tokens` with token_version compare-and-swap refresh; connected is set only after stored tokens pass a Mail.Read check, because this needs no mailboxes schema change and never uses SMTP AUTH.
 - Workers use atomic `acquireWorkerLease`/`releaseWorkerLease` (src/lib/worker-lease.server.ts), never read-then-write checks, to prevent overlapping cron races.
 - Workers read `platform_settings.worker_mode` each tick via `getWorkerMode` (src/lib/worker-mode.server.ts); only "queue" selects queues, otherwise legacy runs, preserving flag-based rollback.
 - Tests block production network via tests/setup/block-production-network.ts in vite.config.ts: the hard-pinned server client otherwise leaks unmocked fixture writes.

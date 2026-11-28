@@ -19,8 +19,15 @@ export const Route = createFileRoute("/api/public/integrations/microsoft/callbac
     if (!tx) return new Response("Microsoft authorization expired or could not be verified. No mailbox was connected.", { status: 400, headers });
     if (url.searchParams.has("error")) return new Response("Microsoft authorization was declined. No mailbox was connected.", { status: 400, headers });
     try {
-      await verifyMicrosoftCode(config, tx, url.searchParams.get("code") ?? "");
-      return new Response("Microsoft consent and account identity verified for this request only. No mailbox was connected; sending and inbox integration are not enabled.", { headers });
-    } catch { return new Response("Microsoft authorization could not be verified. No mailbox was connected.", { status: 400, headers }); }
+      const grant = await verifyMicrosoftCode(config, tx, url.searchParams.get("code") ?? "");
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { connectMicrosoftMailbox } = await import("@/lib/microsoft-graph.server");
+      await connectMicrosoftMailbox(supabaseAdmin, tx, grant);
+      return new Response(null, { status: 303, headers: { ...headers, Location: "/mailboxes?microsoft=connected" } });
+    } catch (error) {
+      const reason = error instanceof Error && !/token|secret/i.test(error.message) ? error.message : "Microsoft authorization could not be verified.";
+      console.warn("[microsoft-oauth] callback failed:", reason);
+      return new Response(`${reason} No mailbox was connected.`, { status: 400, headers });
+    }
   } } },
 });

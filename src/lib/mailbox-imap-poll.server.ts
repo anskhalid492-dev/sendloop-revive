@@ -327,6 +327,7 @@ export async function pollMailbox(
     highestUid: null,
   };
 
+  if (row.imap_host === "graph.microsoft.com") return pollGraphMailbox(admin, row, outcome);
   if (!row.imap_host || !row.imap_port || !row.imap_username || !row.imap_password) {
     outcome.error = "This mailbox has no incoming-mail server saved. Reconnect it.";
     console.warn(`[imap-poll] ${row.email_address}: ${outcome.error}`);
@@ -432,6 +433,32 @@ export async function pollMailbox(
     );
   }
 
+  return outcome;
+}
+
+/** Microsoft 365 (Graph, Mail.Read): same reply/bounce/warmup handling as IMAP, timestamp cursors. */
+async function pollGraphMailbox(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  row: PollMailboxRow,
+  outcome: MailboxPollOutcome,
+): Promise<MailboxPollOutcome> {
+  await admin.from("mailboxes").update({ last_tested_at: new Date().toISOString() }).eq("id", row.id);
+  try {
+    const { readGraphFolders, saveGraphCursors, toRelayMessage } = await import("@/lib/microsoft-graph.server");
+    const { inbox, junk } = await readGraphFolders(admin, row.id);
+    outcome.ok = true;
+    outcome.fetched = inbox.length;
+    outcome.spamFetched = junk.length;
+    outcome.spamFolder = "junkemail";
+    await processFolderMessages(row, inbox.map((m, i) => toRelayMessage(m, i + 1)), "inbox", 0, outcome);
+    await processFolderMessages(row, junk.map((m, i) => toRelayMessage(m, i + 1)), "spam", 0, outcome);
+    await saveGraphCursors(admin, row.id, inbox, junk);
+  } catch (error) {
+    outcome.ok = false;
+    outcome.error = error instanceof Error ? error.message : "Microsoft inbox check failed";
+    console.warn(`[graph-poll] ${row.email_address}: ${outcome.error}`);
+  }
   return outcome;
 }
 

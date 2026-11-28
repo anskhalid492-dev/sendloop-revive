@@ -60,6 +60,8 @@ export async function findCustomerMailbox(
   if (row.status !== "connected") return null;
   // The customer's own pause switch. Never fall back to anything else.
   if (row.is_active === false) return null;
+  // Microsoft 365 via Graph: no SMTP password exists, tokens live in microsoft_mailbox_tokens.
+  if (row.smtp_host === "graph.microsoft.com") return row;
   if (!row.smtp_host || !row.smtp_port || !row.smtp_username || !row.smtp_password) return null;
   return row;
 }
@@ -107,6 +109,15 @@ export async function sendViaCustomerMailbox(
   },
   options?: { timeoutMs?: number },
 ): Promise<CustomerMailboxSend> {
+  if (row.smtp_host === "graph.microsoft.com") {
+    const { sendViaGraph } = await import("@/lib/microsoft-graph.server");
+    return sendViaGraph(admin, row.id, {
+      from: row.email_address, fromName: row.display_name?.trim() || message.fromName?.trim() || null,
+      to: message.to, ...(message.envelopeTo ? { envelopeTo: message.envelopeTo } : {}), subject: message.subject,
+      html: message.html ?? null, text: message.text ?? null,
+      ...(message.headers ? { headers: message.headers } : {}), ...(message.attachments ? { attachments: message.attachments } : {}),
+    });
+  }
   try {
     const smtp = await smtpEndpoint(admin, row);
     const { relaySendMail } = await import("@/lib/mailbox-relay.server");

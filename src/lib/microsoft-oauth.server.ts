@@ -82,8 +82,27 @@ export async function prepareMicrosoftConsent(config: MicrosoftConfig, userId: s
   return { authorizationUrl: url.toString(), cookie: await sealTransaction(config, tx) };
 }
 
-/** Preparation-only verification. Tokens stay in request memory; no connected mailbox is created. */
-export async function verifyMicrosoftCode(config: MicrosoftConfig, tx: MicrosoftTransaction, code: string, fetcher: typeof fetch = fetch): Promise<void> {
+export type MicrosoftTokenGrant = {
+  accessToken: string; refreshToken: string; expiresAt: number; scope: string;
+  profile: { id: string; email: string; displayName: string | null };
+};
+const tokenSchema = z.object({ access_token: z.string().min(1), refresh_token: z.string().min(1),
+  token_type: z.string(), scope: z.string(), expires_in: z.coerce.number().int().positive().max(86_400).optional() });
+export function hasRequiredMailScopes(scope: string): boolean {
+  const granted = new Set(scope.split(" ").map(s => s.replace(/^https:\/\/graph\.microsoft\.com\//i, "").toLowerCase()));
+  return ["mail.send", "mail.read", "user.read"].every(s => granted.has(s));
+}
+/** Parses a token endpoint body. Provider bodies can contain credentials: never log them. */
+export function parseTokenResponse(body: unknown, now = Date.now()) {
+  const tokens = tokenSchema.safeParse(body);
+  if (!tokens.success || tokens.data.token_type.toLowerCase() !== "bearer") throw new Error("Microsoft authorization response is incomplete.");
+  if (!hasRequiredMailScopes(tokens.data.scope)) throw new Error("Microsoft mail permissions were not granted.");
+  return { accessToken: tokens.data.access_token, refreshToken: tokens.data.refresh_token, scope: tokens.data.scope,
+    expiresAt: now + (tokens.data.expires_in ?? 3600) * 1000 };
+}
+
+/** Exchanges the code (state already validated, PKCE verifier from the sealed transaction) and reads the account identity. */
+export async function verifyMicrosoftCode(config: MicrosoftConfig, tx: MicrosoftTransaction, code: string, fetcher: typeof fetch = fetch): Promise<MicrosoftTokenGrant> {
   if (!code || code.length > 8192) throw new Error("Microsoft authorization code is invalid.");
   const response = await fetcher(`https://login.microsoftonline.com/${config.tenantId}/oauth2/v2.0/token`, {
     method: "POST", redirect: "manual", signal: AbortSignal.timeout(12_000),
@@ -92,15 +111,20 @@ export async function verifyMicrosoftCode(config: MicrosoftConfig, tx: Microsoft
       redirect_uri: config.redirectUri, grant_type: "authorization_code", code,
       code_verifier: tx.verifier, scope: MICROSOFT_SCOPES.join(" ") }),
   });
-  // Provider responses can contain credentials: never log/return their bodies.
   if (!response.ok) throw new Error("Microsoft authorization exchange failed.");
-  const tokens = z.object({ access_token: z.string().min(1), refresh_token: z.string().min(1),
-    token_type: z.string(), scope: z.string() }).safeParse(await response.json());
-  if (!tokens.success || tokens.data.token_type.toLowerCase() !== "bearer") throw new Error("Microsoft authorization response is incomplete.");
-  const granted = new Set(tokens.data.scope.split(" ").map(s => s.replace(/^https:\/\/graph\.microsoft\.com\//i, "").toLowerCase()));
-  if (!["mail.send", "mail.read", "user.read"].every(s => granted.has(s))) throw new Error("Microsoft mail permissions were not granted.");
-  const me = await fetcher("https://graph.microsoft.com/v1.0/me?$select=id", {
-    headers: { Authorization: `Bearer ${tokens.data.access_token}` }, redirect: "manual", signal: AbortSignal.timeout(12_000),
+  const tokens = parseTokenResponse(await response.json());
+  const me = await fetcher("https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName,displayName", {
+    headers: { Authorization: `Bearer ${tokens.accessToken}` }, redirect: "manual", signal: AbortSignal.timeout(12_000),
   });
-  if (!me.ok || !z.object({ id: z.string().min(1) }).safeParse(await me.json()).success) throw new Error("Microsoft account verification failed.");
+  const profile = me.ok ? z.object({ id: z.string().min(1), mail: z.string().nullish(), userPrincipalName: z.string().nullish(),
+    displayName: z.string().nullish() }).safeParse(await me.json()) : null;
+  if (!profile?.success) throw new Error("Microsoft account verification failed.");
+  const email = z.string().email().safeParse((profile.data.mail || profile.data.userPrincipalName || "").trim().toLowerCase());
+  if (!email.success) throw new Error("Microsoft account has no usable mailbox address.");
+  return { ...tokens, profile: { id: profile.data.id, email: email.data, displayName: profile.data.displayName ?? null } };
+}
+
+export function microsoftConfigFromEnv(): MicrosoftConfig {
+  return microsoftConfig({ clientId: process.env["MICROSOFT_CLIENT_ID"], clientSecret: process.env["MICROSOFT_CLIENT_SECRET"],
+    tenantId: process.env["MICROSOFT_TENANT_ID"], redirectUri: process.env["MICROSOFT_REDIRECT_URI"] });
 }

@@ -60,3 +60,9 @@ A complete connected-mailbox feature is a later stage: approved encrypted token 
 21 isolated tests passed (10 Microsoft security cases plus 11 existing Slack/HubSpot regressions). Automatic compilation passed. Real Microsoft consent, delegated mail operations and production-schema verification remain untested; no credentials or named test-account session are configured.
 
 References: [Microsoft authorization-code flow](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow), [Microsoft Graph permissions](https://learn.microsoft.com/en-us/graph/permissions-reference).
+## Stage 2 — full Graph mailbox integration (preview code, not published)
+1. Owner runs `supabase/manual/microsoft-graph-mailboxes.sql` on production, then its verification queries.
+2. Add `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID`, `MICROSOFT_REDIRECT_URI` in Project Settings → Secrets.
+3. After publish approval, on https://munchreach.com: Email Accounts → Add → Office 365 → **Sign in with Microsoft** with a named throwaway Microsoft 365 mailbox.
+4. Check: mailbox shows Connected; send a test/inbox email; reply from another address and confirm it appears in Unibox/notifications; wait >1h (or expire the token) to confirm refresh; Disconnect, then Reconnect.
+Graph sending uses `/me/sendMail`, so it works with SMTP AUTH disabled in the tenant.

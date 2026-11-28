@@ -67,12 +67,13 @@ describe("Microsoft mailbox OAuth preparation", () => {
     expect(a.state).not.toBe(b.state);
     expect(a.tx.verifier).not.toBe(b.tx.verifier);
   });
-  it("exchanges the code only server-side and verifies Graph without returning tokens", async () => {
+  it("exchanges the code server-side with the PKCE verifier and reads the Microsoft identity", async () => {
     const { tx } = await transaction();
     const fetcher = vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({ access_token: "offline-access-fixture",
       refresh_token: "offline-refresh-fixture", token_type: "Bearer", scope: MICROSOFT_SCOPES.join(" ") }))
-      .mockResolvedValueOnce(Response.json({ id: "throwaway-microsoft-identity" }));
-    expect(await verifyMicrosoftCode(config, tx, "offline-code", fetcher)).toBeUndefined();
+      .mockResolvedValueOnce(Response.json({ id: "throwaway-microsoft-identity", mail: "Throwaway@Example.test" }));
+    const grant = await verifyMicrosoftCode(config, tx, "offline-code", fetcher);
+    expect(grant.profile).toEqual({ id: "throwaway-microsoft-identity", email: "throwaway@example.test", displayName: null });
     const first = fetcher.mock.calls[0];
     if (!first) throw new Error("Missing token request");
     expect(first[0]).toBe("https://login.microsoftonline.com/organizations/oauth2/v2.0/token");
@@ -81,7 +82,7 @@ describe("Microsoft mailbox OAuth preparation", () => {
     expect(body.get("grant_type")).toBe("authorization_code");
     expect(body.get("code_verifier")).toBe(tx.verifier);
     expect(body.get("redirect_uri")).toBe(MICROSOFT_REDIRECT_URI);
-    expect(fetcher.mock.calls[1]?.[0]).toBe("https://graph.microsoft.com/v1.0/me?$select=id");
+    expect(fetcher.mock.calls[1]?.[0]).toBe("https://graph.microsoft.com/v1.0/me?$select=id,mail,userPrincipalName,displayName");
   });
   it("rejects replayed codes without disclosing provider bodies", async () => {
     const { tx } = await transaction();

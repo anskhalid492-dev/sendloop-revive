@@ -1,5 +1,10 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useWorkspace } from "@/hooks/useWorkspace";
+import { listMailboxes } from "@/lib/customer-mailboxes.functions";
+import { disconnectMicrosoftMailbox, initiateMicrosoftMailboxOAuth } from "@/lib/microsoft-oauth.functions";
 
 import { AppShell } from "@/components/app/AppShell";
 import { BackLink } from "@/components/app/BackLink";
@@ -64,6 +69,7 @@ function ConnectMicrosoftPage() {
     <AppShell title="Office 365 / Outlook" description="Enable SMTP access, then connect">
       <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
+        <MicrosoftSignInCard />
         <Card>
           <CardHeader>
             <CardTitle>Enable SMTP access on your mailbox</CardTitle>
@@ -127,5 +133,56 @@ function Steps({ items }: { items: string[] }) {
         <li key={item}>{item}</li>
       ))}
     </ol>
+  );
+}
+
+function MicrosoftSignInCard() {
+  const { workspace } = useWorkspace();
+  const qc = useQueryClient();
+  const initiate = useServerFn(initiateMicrosoftMailboxOAuth);
+  const disconnect = useServerFn(disconnectMicrosoftMailbox);
+  const list = useServerFn(listMailboxes);
+  const workspaceId = workspace?.id ?? "";
+  const mailboxes = useQuery({
+    queryKey: ["mailboxes", workspaceId], enabled: !!workspaceId,
+    queryFn: () => list({ data: { workspaceId } }),
+  });
+  const start = useMutation({
+    mutationFn: () => initiate({ data: { workspaceId } }),
+    onSuccess: (r) => { window.location.assign(r.authorizationUrl); },
+  });
+  const stop = useMutation({
+    mutationFn: (mailboxId: string) => disconnect({ data: { mailboxId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mailboxes", workspaceId] }),
+  });
+  const graph = (mailboxes.data ?? []).filter((m) => m.smtp_host === "graph.microsoft.com");
+  return (
+    <Card>
+      <CardHeader><CardTitle>Sign in with Microsoft (recommended)</CardTitle></CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Connect Microsoft 365 with a Microsoft sign-in. No password or SMTP setting is needed, and it works even when SMTP is turned off.
+        </p>
+        <Button type="button" disabled={!workspaceId || start.isPending} onClick={() => start.mutate()}>
+          {start.isPending ? "Opening Microsoft…" : "Sign in with Microsoft"}
+        </Button>
+        {start.error ? <p className="text-sm text-destructive">{start.error.message}</p> : null}
+        {graph.length ? (
+          <ul className="space-y-2">
+            {graph.map((m) => (
+              <li key={m.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border p-3 text-sm">
+                <span className="min-w-0 truncate">{m.email_address} · {m.status === "connected" ? "Connected" : "Not connected"}</span>
+                {m.status === "connected" ? (
+                  <Button size="sm" variant="outline" disabled={stop.isPending} onClick={() => stop.mutate(m.id)}>Disconnect</Button>
+                ) : (
+                  <Button size="sm" variant="outline" disabled={start.isPending} onClick={() => start.mutate()}>Reconnect</Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        {stop.error ? <p className="text-sm text-destructive">{stop.error.message}</p> : null}
+      </CardContent>
+    </Card>
   );
 }

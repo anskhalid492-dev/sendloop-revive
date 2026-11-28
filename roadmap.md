@@ -1,9 +1,10 @@
 # Roadmap
 
-## Microsoft 365 OAuth preparation
-- [x] Inspect existing mailbox architecture and prepare isolated consent/callback handlers and configuration instructions; no deployment or mailbox writes.
-- [x] Run 21 isolated OAuth security/regression tests; automatic compilation passed.
-- [ ] Test real consent on a named throwaway Microsoft account — blocked: real Entra credentials and deployment approval required; sending/inbox adapters are outside this preparation stage.
+## Microsoft 365 Graph mailboxes
+- [x] Callback exchanges code with validated state/PKCE, stores encrypted tokens, verifies inbox access before marking connected.
+- [x] Graph sending (Mail.Send), Inbox/Junk sync into existing reply/bounce/warmup pipeline, token refresh with rotation, disconnect/reconnect UI; 2,200 offline tests pass.
+- [ ] Owner applies supabase/manual/microsoft-graph-mailboxes.sql to production — blocked: manual production SQL.
+- [ ] Add the four Microsoft secrets, publish, and test with a named throwaway Microsoft 365 mailbox (consent, send, reply, refresh, disconnect/reconnect) — blocked: owner secrets and publish approval.
 
 ## Campaign sending reconciliation
 - [x] Audit Agencies - Free Trials and all 116 held IDs read-only; 20 have pixel events, none has recorded acceptance/delivery/rejection evidence.
