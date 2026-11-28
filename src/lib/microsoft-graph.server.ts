@@ -21,6 +21,14 @@ export function isGraphMailbox(row: { smtp_host?: string | null; imap_host?: str
   return row.smtp_host === GRAPH_HOST || row.imap_host === GRAPH_HOST;
 }
 
+/** Only Microsoft-hosted legacy connections can be upgraded in place by Microsoft consent. */
+export function isMicrosoftSmtpMailbox(row: { smtp_host?: string | null; imap_host?: string | null }): boolean {
+  const smtp = row.smtp_host?.trim().toLowerCase();
+  const imap = row.imap_host?.trim().toLowerCase();
+  return ["smtp.office365.com", "smtp-mail.outlook.com", "smtp.outlook.com"].includes(smtp ?? "") &&
+    ["outlook.office365.com", "imap-mail.outlook.com", "imap.outlook.com"].includes(imap ?? "");
+}
+
 type StoredTokens = { accessToken: string; refreshToken: string; expiresAt: number };
 type TokenRow = { mailbox_id: string; encrypted_tokens: string | null; token_version: number; status: string };
 
@@ -207,8 +215,8 @@ export async function connectMicrosoftMailbox(admin: Admin, tx: MicrosoftTransac
   const email = grant.profile.email;
   const { data: existing } = await admin.from("mailboxes").select("id, smtp_host, imap_host")
     .eq("workspace_id", tx.workspaceId).eq("email_address", email).maybeSingle();
-  if (existing && !isGraphMailbox(existing)) {
-    throw new Error("This address is already connected with SMTP/IMAP. Remove that connection first; it was left unchanged.");
+  if (existing && !isGraphMailbox(existing) && !isMicrosoftSmtpMailbox(existing)) {
+    throw new Error("This address already uses another mail provider. Its connection was left unchanged.");
   }
   let mailboxId: string = existing?.id;
   if (!existing) {
@@ -244,8 +252,17 @@ export async function connectMicrosoftMailbox(admin: Admin, tx: MicrosoftTransac
     throw new Error("Microsoft inbox access could not be verified. No mailbox was connected.");
   }
   const verifiedAt = new Date(now).toISOString();
-  await admin.from("microsoft_mailbox_tokens").update({ status: "connected", verified_at: verifiedAt }).eq("mailbox_id", mailboxId);
-  await admin.from("mailboxes").update({ status: "connected", last_tested_at: verifiedAt }).eq("id", mailboxId);
+  const { error: verifiedError } = await admin.from("microsoft_mailbox_tokens")
+    .update({ status: "connected", verified_at: verifiedAt }).eq("mailbox_id", mailboxId);
+  if (verifiedError) throw new Error("Microsoft connection verification could not be saved.");
+  // Switch the existing row only AFTER encrypted-token storage and inbox verification.
+  // Its ID, campaign links, limits, pause state and warmup/history remain untouched.
+  const { error: connectedError } = await admin.from("mailboxes").update({
+    status: "connected", last_tested_at: verifiedAt,
+    smtp_host: GRAPH_HOST, smtp_port: 443, smtp_secure: true, smtp_username: email, smtp_password: null,
+    imap_host: GRAPH_HOST, imap_port: 443, imap_secure: true, imap_username: email, imap_password: null,
+  }).eq("id", mailboxId).eq("workspace_id", tx.workspaceId);
+  if (connectedError) throw new Error("Microsoft mailbox connection could not be saved.");
   return { mailboxId, email };
 }
 

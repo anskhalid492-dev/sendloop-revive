@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph } from "@/lib/microsoft-graph.server";
+import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph, connectMicrosoftMailbox, isMicrosoftSmtpMailbox } from "@/lib/microsoft-graph.server";
 import { microsoftConfig, MICROSOFT_REDIRECT_URI, parseTokenResponse } from "@/lib/microsoft-oauth.server";
 
 // Offline fixtures only: fake in-memory table, stubbed fetch, no real credentials or customer data.
@@ -31,6 +31,59 @@ async function fakeAdmin(expiresAt: number) {
 }
 
 describe("Microsoft Graph mailbox", () => {
+  it("restricts in-place upgrades to Microsoft SMTP and IMAP hosts", () => {
+    expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp.office365.com", imap_host: "outlook.office365.com" })).toBe(true);
+    expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp-mail.outlook.com", imap_host: "imap-mail.outlook.com" })).toBe(true);
+    expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp.gmail.com", imap_host: "imap.gmail.com" })).toBe(false);
+    expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp.office365.com", imap_host: "imap.example.test" })).toBe(false);
+  });
+  it.each([200, 403])("upgrades a saved SMTP mailbox only after stored-token inbox verification (%s)", async (status) => {
+    const mailbox = { id: "throwaway-microsoft-mailbox", smtp_host: "smtp.office365.com", imap_host: "outlook.office365.com",
+      smtp_password: "offline-vault-reference", imap_password: "offline-vault-reference", status: "pending",
+      daily_send_limit: 50, warmup_enabled: true, is_active: false };
+    let stored: Record<string, unknown> | null = null;
+    const admin = { from: (table: string) => {
+      let patch: Record<string, unknown> | null = null;
+      const q = {
+        select: () => q, eq: () => q,
+        upsert: (value: Record<string, unknown>) => { stored = value; return q; },
+        update: (value: Record<string, unknown>) => { patch = value; return q; },
+        maybeSingle: async () => ({ data: table === "workspace_members" ? { user_id: "throwaway-user" } : table === "mailboxes" ? { ...mailbox } : stored, error: null }),
+        then: (resolve: (value: unknown) => void) => {
+          if (patch && table === "mailboxes") Object.assign(mailbox, patch);
+          if (patch && table === "microsoft_mailbox_tokens" && stored) Object.assign(stored, patch);
+          resolve({ data: null, error: null });
+        },
+      };
+      return q;
+    } };
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => {
+      expect(stored?.["encrypted_tokens"]).toBeTypeOf("string");
+      expect(mailbox.smtp_host).toBe("smtp.office365.com");
+      return new Response(null, { status });
+    });
+    const tx = { userId: "throwaway-user", workspaceId: "throwaway-workspace", state: "offline", verifier: "offline",
+      issuedAt: 0, expiresAt: 600000, clientId: config.clientId, tenantId: config.tenantId, redirectUri: MICROSOFT_REDIRECT_URI };
+    const attempt = connectMicrosoftMailbox(admin, tx, { accessToken: "offline-access", refreshToken: "offline-refresh",
+      expiresAt: Date.now() + 3600000, scope: SCOPE, profile: { id: "throwaway-microsoft-identity", email: "throwaway@example.test", displayName: null } }, { fetcher });
+    if (status === 200) {
+      expect(await attempt).toEqual({ mailboxId: "throwaway-microsoft-mailbox", email: "throwaway@example.test" });
+      expect(mailbox.smtp_host).toBe("graph.microsoft.com");
+      expect(mailbox.imap_host).toBe("graph.microsoft.com");
+      expect(mailbox.smtp_password).toBeNull();
+      expect(mailbox.imap_password).toBeNull();
+      expect(mailbox.status).toBe("connected");
+    } else {
+      await expect(attempt).rejects.toThrow("inbox access could not be verified");
+      expect(mailbox.smtp_host).toBe("smtp.office365.com");
+      expect(mailbox.smtp_password).toBe("offline-vault-reference");
+      expect(mailbox.status).toBe("pending");
+    }
+    expect(mailbox.id).toBe("throwaway-microsoft-mailbox");
+    expect(mailbox.daily_send_limit).toBe(50);
+    expect(mailbox.warmup_enabled).toBe(true);
+    expect(mailbox.is_active).toBe(false);
+  });
   it("requires Mail.Send, Mail.Read and User.Read in the granted scope", () => {
     expect(() => parseTokenResponse({ access_token: "a", refresh_token: "r", token_type: "Bearer", scope: "User.Read" })).toThrow("permissions");
     expect(parseTokenResponse({ access_token: "a", refresh_token: "r", token_type: "Bearer", scope: SCOPE, expires_in: 3600 }, 0).expiresAt).toBe(3_600_000);

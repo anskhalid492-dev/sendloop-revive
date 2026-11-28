@@ -25,12 +25,12 @@ export const Route = createFileRoute("/_authenticated/mailboxes/add-microsoft")(
       {
         name: "description",
         content:
-          "Enable SMTP access on your Microsoft 365 or GoDaddy-hosted mailbox, then connect it to MunchReach.",
+          "Connect Microsoft 365 or a free Outlook.com mailbox securely with Microsoft sign-in.",
       },
       { property: "og:title", content: "Connect Office 365 or Outlook" },
       {
         property: "og:description",
-        content: "Turn on Authenticated SMTP and IMAP, then connect your Microsoft mailbox.",
+        content: "Connect Microsoft 365 or Outlook.com with OAuth, without enabling SMTP AUTH.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -66,18 +66,18 @@ function ConnectMicrosoftPage() {
   const [ready, setReady] = useState(false);
 
   return (
-    <AppShell title="Office 365 / Outlook" description="Enable SMTP access, then connect">
+    <AppShell title="Office 365 / Outlook" description="Connect with Microsoft sign-in">
       <BackLink to="/mailboxes/add" />
       <div className="mx-auto max-w-3xl space-y-6">
         <MicrosoftSignInCard />
         <Card>
           <CardHeader>
-            <CardTitle>Enable SMTP access on your mailbox</CardTitle>
+            <CardTitle>Legacy SMTP / IMAP connection</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Microsoft blocks app sign-ins until SMTP and IMAP are switched on for the mailbox.
-              Follow the steps that match where you bought the account.
+              These settings apply only to password-based connections permitted by your organization.
+              Microsoft sign-in above does not require SMTP AUTH; use it for free Outlook.com accounts or SMTP 535 5.7.139 errors.
             </p>
             <Accordion type="single" collapsible className="w-full">
               <AccordionItem value="microsoft">
@@ -161,7 +161,8 @@ function MicrosoftSignInCard() {
       <CardHeader><CardTitle>Sign in with Microsoft (recommended)</CardTitle></CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Connect Microsoft 365 with a Microsoft sign-in. No password or SMTP setting is needed, and it works even when SMTP is turned off.
+          Connect Microsoft 365 or free Outlook.com with Microsoft sign-in. No password or SMTP setting is needed.
+          Signing in with the same address upgrades an existing Microsoft SMTP connection without removing its history.
         </p>
         <Button type="button" disabled={!workspaceId || start.isPending} onClick={() => start.mutate()}>
           {start.isPending ? "Opening Microsoft…" : "Sign in with Microsoft"}
