@@ -226,6 +226,8 @@ import { Route as ApiPublicV1WebhooksRouteImport } from './routes/api/public/v1/
 import { Route as ApiPublicIntegrationsCalendlyCallbackRouteImport } from './routes/api/public/integrations/calendly/callback'
 import { Route as ApiPublicIntegrationsCalendlyWebhookRouteImport } from './routes/api/public/integrations/calendly/webhook'
 import { Route as ApiPublicIntegrationsHubspotCallbackRouteImport } from './routes/api/public/integrations/hubspot/callback'
+import { Route as ApiPublicIntegrationsMicrosoftCallbackRouteImport } from './routes/api/public/integrations/microsoft/callback'
+import { Route as ApiPublicIntegrationsMicrosoftInitiateRouteImport } from './routes/api/public/integrations/microsoft/initiate'
 import { Route as ApiPublicIntegrationsSlackCallbackRouteImport } from './routes/api/public/integrations/slack/callback'
 import { Route as ApiPublicV1CampaignsCampaignIdRouteImport } from './routes/api/public/v1/campaigns.$campaignId'
 import { Route as ApiPublicV1ContactsContactIdRouteImport } from './routes/api/public/v1/contacts.$contactId'
@@ -1439,6 +1441,18 @@ const ApiPublicIntegrationsHubspotCallbackRoute =
     path: '/api/public/integrations/hubspot/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsMicrosoftCallbackRoute =
+  ApiPublicIntegrationsMicrosoftCallbackRouteImport.update({
+    id: '/api/public/integrations/microsoft/callback',
+    path: '/api/public/integrations/microsoft/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMicrosoftInitiateRoute =
+  ApiPublicIntegrationsMicrosoftInitiateRouteImport.update({
+    id: '/api/public/integrations/microsoft/initiate',
+    path: '/api/public/integrations/microsoft/initiate',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsSlackCallbackRoute =
   ApiPublicIntegrationsSlackCallbackRouteImport.update({
     id: '/api/public/integrations/slack/callback',
@@ -1734,6 +1748,8 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/integrations/hubspot/callback': typeof ApiPublicIntegrationsHubspotCallbackRoute
+  '/api/public/integrations/microsoft/callback': typeof ApiPublicIntegrationsMicrosoftCallbackRoute
+  '/api/public/integrations/microsoft/initiate': typeof ApiPublicIntegrationsMicrosoftInitiateRoute
   '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
@@ -1962,6 +1978,8 @@ export interface FileRoutesByTo {
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/integrations/hubspot/callback': typeof ApiPublicIntegrationsHubspotCallbackRoute
+  '/api/public/integrations/microsoft/callback': typeof ApiPublicIntegrationsMicrosoftCallbackRoute
+  '/api/public/integrations/microsoft/initiate': typeof ApiPublicIntegrationsMicrosoftInitiateRoute
   '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
@@ -2195,6 +2213,8 @@ export interface FileRoutesById {
   '/api/public/integrations/calendly/callback': typeof ApiPublicIntegrationsCalendlyCallbackRoute
   '/api/public/integrations/calendly/webhook': typeof ApiPublicIntegrationsCalendlyWebhookRoute
   '/api/public/integrations/hubspot/callback': typeof ApiPublicIntegrationsHubspotCallbackRoute
+  '/api/public/integrations/microsoft/callback': typeof ApiPublicIntegrationsMicrosoftCallbackRoute
+  '/api/public/integrations/microsoft/initiate': typeof ApiPublicIntegrationsMicrosoftInitiateRoute
   '/api/public/integrations/slack/callback': typeof ApiPublicIntegrationsSlackCallbackRoute
   '/api/public/v1/campaigns/$campaignId': typeof ApiPublicV1CampaignsCampaignIdRouteWithChildren
   '/api/public/v1/contacts/$contactId': typeof ApiPublicV1ContactsContactIdRoute
@@ -2428,6 +2448,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
     | '/api/public/integrations/hubspot/callback'
+    | '/api/public/integrations/microsoft/callback'
+    | '/api/public/integrations/microsoft/initiate'
     | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
@@ -2656,6 +2678,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
     | '/api/public/integrations/hubspot/callback'
+    | '/api/public/integrations/microsoft/callback'
+    | '/api/public/integrations/microsoft/initiate'
     | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
@@ -2888,6 +2912,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/calendly/callback'
     | '/api/public/integrations/calendly/webhook'
     | '/api/public/integrations/hubspot/callback'
+    | '/api/public/integrations/microsoft/callback'
+    | '/api/public/integrations/microsoft/initiate'
     | '/api/public/integrations/slack/callback'
     | '/api/public/v1/campaigns/$campaignId'
     | '/api/public/v1/contacts/$contactId'
@@ -3021,6 +3047,8 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsCalendlyCallbackRoute: typeof ApiPublicIntegrationsCalendlyCallbackRoute
   ApiPublicIntegrationsCalendlyWebhookRoute: typeof ApiPublicIntegrationsCalendlyWebhookRoute
   ApiPublicIntegrationsHubspotCallbackRoute: typeof ApiPublicIntegrationsHubspotCallbackRoute
+  ApiPublicIntegrationsMicrosoftCallbackRoute: typeof ApiPublicIntegrationsMicrosoftCallbackRoute
+  ApiPublicIntegrationsMicrosoftInitiateRoute: typeof ApiPublicIntegrationsMicrosoftInitiateRoute
   ApiPublicIntegrationsSlackCallbackRoute: typeof ApiPublicIntegrationsSlackCallbackRoute
 }
 
@@ -4545,6 +4573,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsHubspotCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/microsoft/callback': {
+      id: '/api/public/integrations/microsoft/callback'
+      path: '/api/public/integrations/microsoft/callback'
+      fullPath: '/api/public/integrations/microsoft/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsMicrosoftCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/microsoft/initiate': {
+      id: '/api/public/integrations/microsoft/initiate'
+      path: '/api/public/integrations/microsoft/initiate'
+      fullPath: '/api/public/integrations/microsoft/initiate'
+      preLoaderRoute: typeof ApiPublicIntegrationsMicrosoftInitiateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/slack/callback': {
       id: '/api/public/integrations/slack/callback'
       path: '/api/public/integrations/slack/callback'
@@ -5204,6 +5246,10 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsCalendlyWebhookRoute,
   ApiPublicIntegrationsHubspotCallbackRoute:
     ApiPublicIntegrationsHubspotCallbackRoute,
+  ApiPublicIntegrationsMicrosoftCallbackRoute:
+    ApiPublicIntegrationsMicrosoftCallbackRoute,
+  ApiPublicIntegrationsMicrosoftInitiateRoute:
+    ApiPublicIntegrationsMicrosoftInitiateRoute,
   ApiPublicIntegrationsSlackCallbackRoute:
     ApiPublicIntegrationsSlackCallbackRoute,
 }

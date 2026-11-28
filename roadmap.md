@@ -1,5 +1,10 @@
 # Roadmap
 
+## Microsoft 365 OAuth preparation
+- [x] Inspect existing mailbox architecture and prepare isolated consent/callback handlers and configuration instructions; no deployment or mailbox writes.
+- [x] Run 21 isolated OAuth security/regression tests; automatic compilation passed.
+- [ ] Test real consent on a named throwaway Microsoft account — blocked: real Entra credentials and deployment approval required; sending/inbox adapters are outside this preparation stage.
+
 ## Campaign sending reconciliation
 - [x] Audit Agencies - Free Trials and all 116 held IDs read-only; 20 have pixel events, none has recorded acceptance/delivery/rejection evidence.
 - [x] Unify preview message-ID outcomes, distinguish provider acceptance from receipts, and remove cancelled follow-ups from bounced-message totals.
