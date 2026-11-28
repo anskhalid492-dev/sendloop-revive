@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2, Lock, Paperclip, RefreshCcw, Search } from "lucide-react";
+import { Loader2, Lock, Mail, Paperclip, RefreshCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { AdminShell } from "@/components/app/AdminShell";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { SupportStars } from "@/components/support/SupportStars";
 import { SUPPORT_RATING_LABEL, SUPPORT_RATING_VALUES } from "@/lib/support-rating";
 import {
+  emailAdminTicketReply,
   getAdminAttachmentUrl,
   getAdminTicket,
   getSupportSatisfaction,
@@ -334,6 +335,7 @@ function TicketDetail({
   const queryClient = useQueryClient();
   const fetchTicket = useServerFn(getAdminTicket);
   const reply = useServerFn(replyAdminTicket);
+  const emailReply = useServerFn(emailAdminTicketReply);
   const update = useServerFn(updateAdminTicket);
   const signAttachment = useServerFn(getAdminAttachmentUrl);
 
@@ -353,6 +355,12 @@ function TicketDetail({
       void queryClient.invalidateQueries({ queryKey: ["admin-ticket", ticketId] });
       void queryClient.invalidateQueries({ queryKey: ["admin-tickets"] });
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const emailExisting = useMutation({
+    mutationFn: (messageId: string) => emailReply({ data: { messageId } }),
+    onSuccess: () => toast.success("Customer email requested"),
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -570,6 +578,18 @@ function TicketDetail({
                     <Lock className="size-3" /> Internal note
                   </span>
                 ) : null}
+                {message.author_role === "support" && !message.is_internal ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-7 px-2 text-xs"
+                    disabled={emailExisting.isPending}
+                    onClick={() => emailExisting.mutate(message.id)}
+                  >
+                    <Mail className="mr-1 size-3.5" /> Email reply
+                  </Button>
+                ) : null}
               </div>
               <p className="whitespace-pre-wrap">{message.body}</p>
               {message.attachment_path ? (
@@ -592,6 +612,11 @@ function TicketDetail({
             rows={4}
             placeholder={internal ? "Internal note — customers never see this" : "Reply to the customer…"}
           />
+          {!internal ? (
+            <p className="text-xs text-muted-foreground">
+              Also emails the customer through your Support ticket reply email, when enabled.
+            </p>
+          ) : null}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input

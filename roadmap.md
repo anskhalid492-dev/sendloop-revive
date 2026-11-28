@@ -1,5 +1,11 @@
 # Roadmap
 
+## Support reply customer emails
+- [x] Connect public Admin replies to the existing Support ticket reply System Email; exclude private notes, use per-message idempotency, and resolve registered/guest recipients without a schema change.
+- [x] Add a staff-only Email reply action for an existing public support message, using the same recipient and idempotency rules, so Christopher’s confirmed screenshot reply can be sent after publication.
+- [x] Run 42 isolated support/email regressions, type checking, and preview compilation; no existing-ticket email, migration, or publication yet.
+- [ ] Publish with explicit owner approval, then email Christopher’s existing reply once; verify real delivery separately on a named throwaway account — blocked: publish approval and scoped test session; signed-in preview is unavailable because the backend is user-managed.
+
 ## Per-mailbox Reply-To
 - [x] Add optional mailbox Reply-To editing using existing storage; apply to SMTP and Microsoft's native replyTo, preserving warmup; no migration required.
 - [x] Allow header-proven replies on the configured connected receiving mailbox within the same workspace; 19 new isolated tests and all 2,246 regressions pass; automatic compilation OK.

@@ -9,7 +9,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { SUPPORT_PRIORITIES, SUPPORT_STATUSES } from "@/lib/support-model";
+import { SUPPORT_PRIORITIES, SUPPORT_STATUSES, ticketReference } from "@/lib/support-model";
+import type { EmitInput } from "@/lib/transactional-events.server";
 
 async function assertStaff(context: { supabase: any; userId: string; claims?: Record<string, any> }) {
   const [admin, support] = await Promise.all([
@@ -254,6 +255,52 @@ export const getAdminTicket = createServerFn({ method: "GET" })
     };
   });
 
+type SupportReplyEmailTicket = {
+  id: string;
+  subject: string;
+  created_by: string | null;
+  workspace_id: string | null;
+  contact_email: string | null;
+  ticket_ref: string | null;
+};
+
+/**
+ * Sends a public staff reply through the existing System Email template.
+ * The message ID makes automatic/manual retries idempotent. Internal notes and
+ * browser-supplied recipient addresses are deliberately not accepted.
+ */
+export async function notifyAdminSupportReply(
+  ticket: SupportReplyEmailTicket,
+  message: { id: string; body: string },
+  internal: boolean,
+  emit?: (input: EmitInput) => Promise<void>,
+): Promise<void> {
+  if (internal) return;
+
+  const input: EmitInput = {
+    eventKey: "support.ticket.replied",
+    userId: ticket.created_by,
+    to: ticket.created_by ? null : ticket.contact_email,
+    workspaceId: ticket.workspace_id,
+    idempotencyKey: `support.replied:${message.id}`,
+    immediate: true,
+    variables: {
+      "ticket.subject": ticket.subject,
+      "ticket.reference": ticket.ticket_ref ?? ticketReference(ticket.id),
+      "ticket.message": message.body,
+    },
+  };
+
+  try {
+    const emitEvent = emit ?? (await import("@/lib/transactional-events.server")).emitTransactionalEvent;
+    await emitEvent(input);
+  } catch (error) {
+    // The reply is already saved. Never make staff retry the whole mutation,
+    // which could create a second ticket message after an email-only failure.
+    console.error("support reply email failed", error);
+  }
+}
+
 export const replyAdminTicket = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
@@ -276,17 +323,30 @@ export const replyAdminTicket = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertStaff(context);
 
-    const { error } = await context.supabase.from("support_ticket_messages").insert({
-      ticket_id: data.ticketId,
-      author_id: context.userId,
-      author_role: "support",
-      body: data.body,
-      is_internal: data.internal,
-      attachment_path: data.attachment?.path ?? null,
-      attachment_name: data.attachment?.name ?? null,
-      attachment_size: data.attachment?.size ?? null,
-    });
+    const { data: ticket, error: ticketError } = await context.supabase
+      .from("support_tickets")
+      .select("id, subject, created_by, workspace_id, contact_email, ticket_ref")
+      .eq("id", data.ticketId)
+      .maybeSingle();
+    if (ticketError) throw new Error(ticketError.message);
+    if (!ticket) throw new Error("Ticket not found");
+
+    const { data: message, error } = await context.supabase
+      .from("support_ticket_messages")
+      .insert({
+        ticket_id: data.ticketId,
+        author_id: context.userId,
+        author_role: "support",
+        body: data.body,
+        is_internal: data.internal,
+        attachment_path: data.attachment?.path ?? null,
+        attachment_name: data.attachment?.name ?? null,
+        attachment_size: data.attachment?.size ?? null,
+      })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+    if (!message) throw new Error("Reply could not be saved");
 
     const nextStatus = data.status ?? (data.internal ? undefined : "waiting_customer");
     const patch = {
@@ -299,6 +359,45 @@ export const replyAdminTicket = createServerFn({ method: "POST" })
       .eq("id", data.ticketId);
     if (uErr) throw new Error(uErr.message);
 
+    await notifyAdminSupportReply(
+      ticket as unknown as SupportReplyEmailTicket,
+      { id: message.id as string, body: data.body },
+      data.internal,
+    );
+
+    return { ok: true };
+  });
+
+/** Re-send an existing public reply without creating another ticket message. */
+export const emailAdminTicketReply = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ messageId: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    await assertStaff(context);
+
+    const { data: message, error: messageError } = await context.supabase
+      .from("support_ticket_messages")
+      .select("id, ticket_id, body, author_role, is_internal")
+      .eq("id", data.messageId)
+      .maybeSingle();
+    if (messageError) throw new Error(messageError.message);
+    if (!message || message.author_role !== "support" || message.is_internal) {
+      throw new Error("Only public support replies can be emailed");
+    }
+
+    const { data: ticket, error: ticketError } = await context.supabase
+      .from("support_tickets")
+      .select("id, subject, created_by, workspace_id, contact_email, ticket_ref")
+      .eq("id", message.ticket_id)
+      .maybeSingle();
+    if (ticketError) throw new Error(ticketError.message);
+    if (!ticket) throw new Error("Ticket not found");
+
+    await notifyAdminSupportReply(
+      ticket as unknown as SupportReplyEmailTicket,
+      { id: message.id as string, body: message.body as string },
+      false,
+    );
     return { ok: true };
   });
 
