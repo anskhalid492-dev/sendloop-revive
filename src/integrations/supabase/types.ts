@@ -6464,6 +6464,75 @@ export type Database = {
         }
         Relationships: []
       }
+      microsoft_mailbox_tokens: {
+        Row: {
+          access_expires_at: string | null
+          created_at: string
+          email_address: string
+          encrypted_tokens: string | null
+          granted_scopes: string | null
+          inbox_cursor: string | null
+          junk_cursor: string | null
+          last_error: string | null
+          mailbox_id: string
+          microsoft_user_id: string
+          status: string
+          token_version: number
+          updated_at: string
+          verified_at: string | null
+          workspace_id: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          created_at?: string
+          email_address: string
+          encrypted_tokens?: string | null
+          granted_scopes?: string | null
+          inbox_cursor?: string | null
+          junk_cursor?: string | null
+          last_error?: string | null
+          mailbox_id: string
+          microsoft_user_id: string
+          status?: string
+          token_version?: number
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          created_at?: string
+          email_address?: string
+          encrypted_tokens?: string | null
+          granted_scopes?: string | null
+          inbox_cursor?: string | null
+          junk_cursor?: string | null
+          last_error?: string | null
+          mailbox_id?: string
+          microsoft_user_id?: string
+          status?: string
+          token_version?: number
+          updated_at?: string
+          verified_at?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "microsoft_mailbox_tokens_mailbox_id_fkey"
+            columns: ["mailbox_id"]
+            isOneToOne: true
+            referencedRelation: "mailboxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "microsoft_mailbox_tokens_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       munchmate_knowledge: {
         Row: {
           content: string
