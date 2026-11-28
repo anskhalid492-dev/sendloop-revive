@@ -33,6 +33,7 @@ type StoredTokens = { accessToken: string; refreshToken: string; expiresAt: numb
 type TokenRow = { mailbox_id: string; encrypted_tokens: string | null; token_version: number; status: string };
 
 export class MicrosoftReauthRequired extends Error {}
+export class MicrosoftInboxVerificationError extends Error {}
 
 async function crypto_() { return import("@/lib/provider-credentials.server"); }
 
@@ -99,6 +100,24 @@ async function graph(token: string, path: string, init: RequestInit = {}, fetche
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${token}`);
   return fetcher(`${GRAPH}${path}`, { ...init, headers, redirect: "manual", signal: init.signal ?? AbortSignal.timeout(15_000) });
+}
+
+/** Only allowlisted error codes are exposed; never forward Graph bodies, messages or identifiers. */
+export async function inboxVerificationFailure(response: Response): Promise<{ status: number; code: string; message: string }> {
+  const parsed = z.object({ error: z.object({ code: z.string() }) }).safeParse(await response.json().catch(() => null));
+  const known: Record<string, string> = {
+    ErrorAccessDenied: "Microsoft denied inbox access. Check delegated Mail.Read consent and your organization's access policies.",
+    Authorization_RequestDenied: "Microsoft denied inbox access. Check delegated Mail.Read consent and your organization's access policies.",
+    InvalidAuthenticationToken: "Microsoft rejected the inbox authorization. Start Microsoft sign-in again.",
+    MailboxNotEnabledForRESTAPI: "Microsoft reports this account's mailbox is unavailable through Graph. Confirm that Outlook web opens the mailbox; organizational accounts may require an Exchange Online mailbox.",
+    ErrorMailboxNotEnabledForRESTAPI: "Microsoft reports this account's mailbox is unavailable through Graph. Confirm that Outlook web opens the mailbox; organizational accounts may require an Exchange Online mailbox.",
+    ErrorItemNotFound: "Microsoft could not find this account's inbox. Confirm the mailbox opens in Outlook web.",
+    TooManyRequests: "Microsoft temporarily limited inbox requests. Wait and try Microsoft sign-in again.",
+  };
+  const rawCode = parsed.success ? parsed.data.error.code : "";
+  const code = Object.hasOwn(known, rawCode) ? rawCode : "Unspecified";
+  const detail = known[code] ?? (response.status >= 500 ? "Microsoft's inbox service is temporarily unavailable. Try again later." : "Microsoft inbox access could not be verified. Check the mailbox in Outlook web and its delegated Mail.Read consent.");
+  return { status: response.status, code, message: `${detail} (HTTP ${response.status}; ${code}).` };
 }
 
 export type GraphOutbound = {
@@ -248,8 +267,9 @@ export async function connectMicrosoftMailbox(admin: Admin, tx: MicrosoftTransac
   const token = await getGraphAccessToken(admin, mailboxId, { ...(deps.fetcher ? { fetcher: deps.fetcher } : {}), now });
   const check = await graph(token, "/me/mailFolders/inbox?$select=id", {}, deps.fetcher);
   if (!check.ok) {
-    await admin.from("microsoft_mailbox_tokens").update({ status: "error", last_error: `Inbox verification failed (${check.status}).` }).eq("mailbox_id", mailboxId);
-    throw new Error("Microsoft inbox access could not be verified. No mailbox was connected.");
+    const failure = await inboxVerificationFailure(check);
+    await admin.from("microsoft_mailbox_tokens").update({ status: "error", last_error: failure.message }).eq("mailbox_id", mailboxId);
+    throw new MicrosoftInboxVerificationError(failure.message);
   }
   const verifiedAt = new Date(now).toISOString();
   const { error: verifiedError } = await admin.from("microsoft_mailbox_tokens")

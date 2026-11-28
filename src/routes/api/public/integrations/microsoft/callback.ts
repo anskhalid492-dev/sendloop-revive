@@ -25,9 +25,11 @@ export const Route = createFileRoute("/api/public/integrations/microsoft/callbac
       await connectMicrosoftMailbox(supabaseAdmin, tx, grant);
       return new Response(null, { status: 303, headers: { ...headers, Location: "/mailboxes?microsoft=connected" } });
     } catch (error) {
-      const reason = error instanceof Error && !/token|secret/i.test(error.message) ? error.message : "Microsoft authorization could not be verified.";
+      const { MicrosoftInboxVerificationError } = await import("@/lib/microsoft-graph.server");
+      const reason = error instanceof MicrosoftInboxVerificationError || (error instanceof Error && !/token|secret/i.test(error.message))
+        ? error.message : "Microsoft authorization could not be verified.";
       console.warn("[microsoft-oauth] callback failed:", reason);
-      return new Response(`${reason} No mailbox was connected.`, { status: 400, headers });
+      return new Response(reason.includes("No mailbox was connected.") ? reason : `${reason} No mailbox was connected.`, { status: 400, headers });
     }
   } } },
 });

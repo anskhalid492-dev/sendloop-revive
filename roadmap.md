@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Microsoft 365 Graph mailboxes
+- [x] Replace generic inbox-verification failure with allowlisted Microsoft error/status guidance and remove duplicate callback sentence; exact live rejection requires another owner sign-in after publication.
 - [x] Prepare same-address Microsoft SMTP-to-Graph upgrade after verified OAuth, preserving mailbox IDs/history/settings; live reconnection still requires publication and owner consent.
 - [x] Add personal-account address fallback (Graph mail → UPN → ID-token preferred_username → email), skipping invalid/empty hints, with offline callback regression coverage; real Microsoft sign-in remains unverified.
 - [x] Callback exchanges code with validated state/PKCE, stores encrypted tokens, verifies inbox access before marking connected.

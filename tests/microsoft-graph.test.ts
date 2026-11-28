@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph, connectMicrosoftMailbox, isMicrosoftSmtpMailbox } from "@/lib/microsoft-graph.server";
+import { buildGraphMessage, getGraphAccessToken, MicrosoftReauthRequired, toRelayMessage, sendViaGraph, connectMicrosoftMailbox, isMicrosoftSmtpMailbox, inboxVerificationFailure } from "@/lib/microsoft-graph.server";
 import { microsoftConfig, MICROSOFT_REDIRECT_URI, parseTokenResponse } from "@/lib/microsoft-oauth.server";
 
 // Offline fixtures only: fake in-memory table, stubbed fetch, no real credentials or customer data.
@@ -31,6 +31,21 @@ async function fakeAdmin(expiresAt: number) {
 }
 
 describe("Microsoft Graph mailbox", () => {
+  it.each(["ErrorAccessDenied", "InvalidAuthenticationToken", "MailboxNotEnabledForRESTAPI", "ErrorItemNotFound", "TooManyRequests"])("retains only an allowlisted inbox failure code: %s", async (code) => {
+    const failure = await inboxVerificationFailure(Response.json({ error: { code, message: "private-provider-body", innerError: { id: "private-id" } } }, { status: 403 }));
+    expect(failure.code).toBe(code);
+    expect(failure.status).toBe(403);
+    expect(JSON.stringify(failure)).not.toContain("private-provider-body");
+    expect(JSON.stringify(failure)).not.toContain("private-id");
+  });
+  it("does not disclose unknown provider codes or non-JSON error bodies", async () => {
+    const failure = await inboxVerificationFailure(Response.json({ error: { code: "private-unknown-code", message: "private" } }, { status: 500 }));
+    expect(failure.code).toBe("Unspecified");
+    expect(JSON.stringify(failure)).not.toContain("private");
+    const nonJson = await inboxVerificationFailure(new Response("private-html", { status: 502 }));
+    expect(nonJson.status).toBe(502);
+    expect(nonJson.code).toBe("Unspecified");
+  });
   it("restricts in-place upgrades to Microsoft SMTP and IMAP hosts", () => {
     expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp.office365.com", imap_host: "outlook.office365.com" })).toBe(true);
     expect(isMicrosoftSmtpMailbox({ smtp_host: "smtp-mail.outlook.com", imap_host: "imap-mail.outlook.com" })).toBe(true);
