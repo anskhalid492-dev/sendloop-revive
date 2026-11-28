@@ -98,6 +98,10 @@ describe("Microsoft mailbox OAuth preparation", () => {
     { mail: null, upn: "UPN@Example.test", preferred: "preferred@example.test", email: "email@example.test", expected: "upn@example.test" },
     { mail: "  ", upn: null, preferred: "Preferred@Example.test", email: "email@example.test", expected: "preferred@example.test" },
     { mail: null, upn: "", preferred: "  ", email: " Email@Example.test ", expected: "email@example.test" },
+    { mail: "not-an-email", upn: "UPN@Example.test", preferred: "preferred@example.test", email: "email@example.test", expected: "upn@example.test" },
+    { mail: null, upn: "personal-account-id", preferred: "Preferred@Example.test", email: "email@example.test", expected: "preferred@example.test" },
+    { mail: "invalid", upn: "personal-account-id", preferred: "not-an-email", email: "Email@Example.test", expected: "email@example.test" },
+    { mail: null, upn: "personal-account-id", preferred: null, email: "Email@Example.test", expected: "email@example.test" },
   ])("resolves the mailbox in mail → UPN → preferred_username → email order: $expected", async ({ mail, upn, preferred, email, expected }) => {
     const { tx } = await transaction();
     // Synthetic token, never sent to a provider or used to authorize an account.

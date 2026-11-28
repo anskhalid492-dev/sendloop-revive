@@ -97,9 +97,10 @@ function mailboxHints(body: unknown): { preferred_username?: string | undefined;
     const parts = token.data.id_token.split(".");
     const payload = parts[1];
     if (parts.length !== 3 || !payload) return {};
-    const claims = z.object({ preferred_username: z.string().optional(), email: z.string().optional() })
+    const claims = z.object({ preferred_username: z.string().nullish(), email: z.string().nullish() })
       .safeParse(JSON.parse(new TextDecoder().decode(decode(payload))));
-    return claims.success ? claims.data : {};
+    if (!claims.success) return {};
+    return { preferred_username: claims.data.preferred_username ?? undefined, email: claims.data.email ?? undefined };
   } catch { return {}; }
 }
 export function hasRequiredMailScopes(scope: string): boolean {
@@ -135,12 +136,14 @@ export async function verifyMicrosoftCode(config: MicrosoftConfig, tx: Microsoft
     displayName: z.string().nullish() }).safeParse(await me.json()) : null;
   if (!profile?.success) throw new Error("Microsoft account verification failed.");
   const hints = mailboxHints(tokenBody);
-  const address = [profile.data.mail, profile.data.userPrincipalName, hints.preferred_username, hints.email]
-    .map(value => value?.trim() ?? "").find(value => value.length > 0);
-  if (!address) throw new Error("Microsoft account has no usable mailbox address.");
-  const email = z.string().email().safeParse(address.toLowerCase());
-  if (!email.success) throw new Error("Microsoft mailbox address has an invalid email format.");
-  return { ...tokens, profile: { id: profile.data.id, email: email.data, displayName: profile.data.displayName ?? null } };
+  const addresses = [profile.data.mail, profile.data.userPrincipalName, hints.preferred_username, hints.email]
+    .map(value => value?.trim().toLowerCase() ?? "");
+  for (const address of addresses) {
+    const email = z.string().email().safeParse(address);
+    if (email.success) return { ...tokens, profile: { id: profile.data.id, email: email.data, displayName: profile.data.displayName ?? null } };
+  }
+  if (addresses.every(address => !address)) throw new Error("Microsoft account has no usable mailbox address.");
+  throw new Error("Microsoft mailbox address has an invalid email format.");
 }
 
 export function microsoftConfigFromEnv(): MicrosoftConfig {
