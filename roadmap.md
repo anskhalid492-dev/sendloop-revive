@@ -1,5 +1,10 @@
 # Roadmap
 
+## Per-mailbox Reply-To
+- [x] Add optional mailbox Reply-To editing using existing storage; apply to SMTP and Microsoft's native replyTo, preserving warmup; no migration required.
+- [x] Allow header-proven replies on the configured connected receiving mailbox within the same workspace; 19 new isolated tests and all 2,246 regressions pass; automatic compilation OK.
+- [ ] Verify signed-in mailbox-details layout and real save/send/reply readback on a named throwaway mailbox — blocked: user-managed sign-in cannot be minted; real provider consent/test mailbox required. Nothing published.
+
 ## Microsoft 365 Graph mailboxes
 - [x] Replace generic inbox-verification failure with allowlisted Microsoft error/status guidance and remove duplicate callback sentence; exact live rejection requires another owner sign-in after publication.
 - [x] Prepare same-address Microsoft SMTP-to-Graph upgrade after verified OAuth, preserving mailbox IDs/history/settings; live reconnection still requires publication and owner consent.

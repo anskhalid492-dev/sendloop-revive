@@ -182,6 +182,7 @@ export function buildGraphMessage(m: GraphOutbound, sendKey: string) {
       subject: m.subject,
       body: m.html ? { contentType: "HTML", content: m.html } : { contentType: "Text", content: m.text ?? "" },
       toRecipients: [addr(to)],
+      ...(headerValue(m.headers, "Reply-To") ? { replyTo: splitList(headerValue(m.headers, "Reply-To")).map(addr) } : {}),
       ...(cc.length ? { ccRecipients: cc.map(addr) } : {}),
       ...(bcc.length ? { bccRecipients: bcc.map(addr) } : {}),
       internetMessageHeaders: custom,

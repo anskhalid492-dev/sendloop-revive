@@ -8,6 +8,8 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Mailbox Reply-To reuses the matching workspace `sending_accounts.reply_to` row; customer sends apply it centrally in `sendViaCustomerMailbox`, Graph uses its native replyTo field, and warmup keeps the sender address, because one setting must work across transports without redirecting warmup.
+- Header-proven campaign replies may match the receiving account or accounts explicitly configured to Reply-To that address within the same workspace; sender-only fallbacks remain mailbox-scoped, because shared reply inboxes must not weaken attribution isolation.
 - Microsoft 365 mailboxes use Graph (src/lib/microsoft-graph.server.ts): a normal `mailboxes` row marked by smtp_host/imap_host `graph.microsoft.com` with null passwords, tokens AES-GCM-encrypted only in service-role-only `microsoft_mailbox_tokens` with token_version compare-and-swap refresh; connected is set only after stored tokens pass a Mail.Read check, because this needs no mailboxes schema change and never uses SMTP AUTH.
 - Microsoft mailbox addresses select the first valid email in Graph mail → userPrincipalName → code-exchange ID-token preferred_username → email order, skipping empty/invalid hints; token claims are address hints only and Graph remains the verified account identity, because personal accounts may omit mail or return a non-email UPN.
 - A Microsoft mailbox binds to the Graph user id only once verified_at is set; unverified token rows (e.g. wrong-tenant attempts) may be replaced on reconnect, because failed attempts otherwise lock the mailbox to the wrong identity.

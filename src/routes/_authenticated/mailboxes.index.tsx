@@ -85,6 +85,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useWorkspace } from "@/hooks/useWorkspace";
 import { MailboxTypeIcon } from "@/components/campaign/MailboxTypeBadge";
 import { WarmupHealthIndicator } from "@/components/mailboxes/WarmupHealthIndicator";
+import { MailboxReplyToEditor } from "@/components/mailboxes/MailboxReplyToEditor";
 import { WarmupSettingsDialog } from "@/components/warmup/WarmupSettingsDialog";
 import { emailProviderOf } from "@/lib/mailbox-type";
 import {
@@ -1019,6 +1020,7 @@ function MailboxDetails({
 
             <div className="space-y-6 py-4 text-sm">
               <SenderNameEditor row={row} />
+              <MailboxReplyToEditor row={row} />
 
               <section className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">

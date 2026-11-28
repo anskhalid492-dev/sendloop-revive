@@ -960,7 +960,7 @@ export async function processJob(admin: Admin, job: Record<string, unknown>, sum
       fromName: account.from_name as string,
       headers: {
         "X-MunchReach-Warmup": "1",
-        ...(account.reply_to ? { "Reply-To": account.reply_to as string } : {}),
+        "Reply-To": account.from_email as string,
         ...(job["warmup_token"] ? { "X-MunchReach-Warmup-Id": String(job["warmup_token"]) } : {}),
       },
     });

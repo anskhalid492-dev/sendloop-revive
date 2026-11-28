@@ -194,11 +194,11 @@ type CampaignMessageRow = {
  * a Message-ID we stored when sending (In-Reply-To / References). No subject
  * matching, no "sender exists in the CRM" guessing.
  */
-async function findCampaignMessageByHeaders(
+export async function findCampaignMessageByHeaders(
   db: Db,
   email: InboundEmail,
   mailboxWorkspaceId: string | null,
-  mailboxAccountId: string | null,
+  mailboxAccountIds: string[],
 ): Promise<{ message: CampaignMessageRow; via: "in_reply_to" | "references" | "thread_message_id" } | null> {
   const candidates = threadCandidates(email);
   if (!candidates.length) return null;
@@ -211,14 +211,14 @@ async function findCampaignMessageByHeaders(
     .in("provider_message_id", candidates)
     .limit(20);
   if (mailboxWorkspaceId) registryQuery = registryQuery.eq("workspace_id", mailboxWorkspaceId);
-  if (mailboxAccountId) registryQuery = registryQuery.eq("sending_account_id", mailboxAccountId);
+  if (mailboxAccountIds.length) registryQuery = registryQuery.in("sending_account_id", mailboxAccountIds);
   const { data: registryRows } = await registryQuery;
   const registry = (registryRows ?? []) as { ref_id: string | null; provider_message_id: string | null }[];
   const registryIds = Array.from(new Set(registry.map((row) => row.ref_id).filter(Boolean))) as string[];
   if (registryIds.length) {
     let linkedQuery = db.from("campaign_messages").select(CAMPAIGN_MESSAGE_COLUMNS).in("id", registryIds).limit(1);
     if (mailboxWorkspaceId) linkedQuery = linkedQuery.eq("workspace_id", mailboxWorkspaceId);
-    if (mailboxAccountId) linkedQuery = linkedQuery.eq("sending_account_id", mailboxAccountId);
+    if (mailboxAccountIds.length) linkedQuery = linkedQuery.in("sending_account_id", mailboxAccountIds);
     const { data: linkedByRegistry } = await linkedQuery;
     const message = linkedByRegistry?.[0] as CampaignMessageRow | undefined;
     if (message) {
@@ -234,7 +234,7 @@ async function findCampaignMessageByHeaders(
     .or(`provider_message_id.in.${list}`)
     .limit(1);
   if (mailboxWorkspaceId) campaignQuery = campaignQuery.eq("workspace_id", mailboxWorkspaceId);
-  if (mailboxAccountId) campaignQuery = campaignQuery.eq("sending_account_id", mailboxAccountId);
+  if (mailboxAccountIds.length) campaignQuery = campaignQuery.in("sending_account_id", mailboxAccountIds);
   const { data } = await campaignQuery;
   const direct = data?.[0] as CampaignMessageRow | undefined;
   if (direct) {
@@ -254,7 +254,7 @@ async function findCampaignMessageByHeaders(
     .order("occurred_at", { ascending: false })
     .limit(1);
   if (mailboxWorkspaceId) conversationQuery = conversationQuery.eq("workspace_id", mailboxWorkspaceId);
-  if (mailboxAccountId) conversationQuery = conversationQuery.eq("sending_account_id", mailboxAccountId);
+  if (mailboxAccountIds.length) conversationQuery = conversationQuery.in("sending_account_id", mailboxAccountIds);
   const { data: viaConversation } = await conversationQuery;
   const campaignMessageId = viaConversation?.[0]?.campaign_message_id as string | undefined;
   if (campaignMessageId) {
@@ -590,11 +590,15 @@ export async function ingestInboundEmail(email: InboundEmail): Promise<IngestRes
     inReplyTo: stripAngle(email.inReplyTo),
     references: (email.references ?? []).map((r) => stripAngle(r)).filter(Boolean) as string[],
   };
+  const { replyToAccountScope } = await import("@/lib/mailbox-reply-to");
+  const headerAccountIds = await replyToAccountScope(db,
+    route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
+    route?.sending_account_id ?? mailboxAccount?.id ?? null, baseAddress(anchor || mailbox));
   const headerMatch = await findCampaignMessageByHeaders(
     db,
     email,
     route?.workspace_id ?? mailboxAccount?.workspace_id ?? null,
-    route?.sending_account_id ?? mailboxAccount?.id ?? null,
+    headerAccountIds,
   );
   let campaignMessage: CampaignMessageRow | null = headerMatch?.message ?? null;
   let secondary: { campaignId: string | null; verdict: AttributionVerdict } | null = null;

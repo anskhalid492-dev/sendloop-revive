@@ -10,6 +10,7 @@
  * and never stored on the row itself.
  */
 import type { MailEndpoint } from "@/lib/mailbox-connection.server";
+import { withMailboxReplyTo } from "@/lib/mailbox-reply-to";
 
 export type CustomerMailboxSend = {
   ok: boolean;
@@ -28,6 +29,7 @@ type MailboxRow = {
   smtp_password: string | null;
   status: string | null;
   is_active?: boolean | null;
+  replyTo?: string | null;
 };
 
 /**
@@ -57,6 +59,10 @@ export async function findCustomerMailbox(
   if (error) return null;
   const row = (data as MailboxRow | null) ?? null;
   if (!row) return null;
+  const { data: account, error: accountError } = await admin.from("sending_accounts")
+    .select("reply_to").eq("workspace_id", workspaceId).eq("from_email", email).maybeSingle();
+  if (accountError) throw new Error("This mailbox's Reply-To setting could not be read. Try again shortly.");
+  row.replyTo = account?.reply_to ?? null;
   if (row.status !== "connected") return null;
   // The customer's own pause switch. Never fall back to anything else.
   if (row.is_active === false) return null;
@@ -109,31 +115,33 @@ export async function sendViaCustomerMailbox(
   },
   options?: { timeoutMs?: number },
 ): Promise<CustomerMailboxSend> {
+  // Warmup must continue receiving on its own mailbox, not the campaign Reply-To.
+  const isWarmup = Object.entries(message.headers ?? {}).some(([key, value]) => key.toLowerCase() === "x-munchreach-warmup" && value === "1");
+  const headers = isWarmup ? message.headers : withMailboxReplyTo(message.headers, row.replyTo);
   if (row.smtp_host === "graph.microsoft.com") {
     const { sendViaGraph } = await import("@/lib/microsoft-graph.server");
     return sendViaGraph(admin, row.id, {
       from: row.email_address, fromName: row.display_name?.trim() || message.fromName?.trim() || null,
       to: message.to, ...(message.envelopeTo ? { envelopeTo: message.envelopeTo } : {}), subject: message.subject,
       html: message.html ?? null, text: message.text ?? null,
-      ...(message.headers ? { headers: message.headers } : {}), ...(message.attachments ? { attachments: message.attachments } : {}),
+      ...(headers ? { headers } : {}), ...(message.attachments ? { attachments: message.attachments } : {}),
     });
   }
   try {
     const smtp = await smtpEndpoint(admin, row);
     const { relaySendMail } = await import("@/lib/mailbox-relay.server");
+    const fromName = row.display_name?.trim() || message.fromName?.trim();
     const result = await relaySendMail(smtp, {
       from: row.email_address,
       // The name saved on the mailbox is what the customer typed for this
       // address, so it wins over any name carried by older bookkeeping rows.
-      ...((row.display_name?.trim() || message.fromName?.trim())
-        ? { fromName: (row.display_name?.trim() || message.fromName?.trim())! }
-        : {}),
+      ...(fromName ? { fromName } : {}),
       to: message.to,
       ...(message.envelopeTo?.length ? { envelopeTo: message.envelopeTo } : {}),
       subject: message.subject,
       ...(message.html ? { html: message.html } : {}),
       ...(message.text ? { text: message.text } : {}),
-      ...(message.headers ? { headers: message.headers } : {}),
+      ...(headers ? { headers } : {}),
       ...(message.attachments?.length ? { attachments: message.attachments } : {}),
     }, options?.timeoutMs ? { timeoutMs: options.timeoutMs } : undefined);
     return {

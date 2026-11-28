@@ -17,6 +17,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { mailboxWindowStart, storedSentToday } from "@/lib/mailbox-daily-usage";
+import { mailboxReplyToSchema } from "@/lib/mailbox-reply-to";
 import { PROGRESSION_COLUMNS, resolveWarmupProgression, type ProgressionSettings } from "@/lib/warmup-progression";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +41,7 @@ export type WorkspaceMailboxRow = {
   id: string;
   email: string;
   displayName: string | null;
+  replyTo: string | null;
   /** pending | connected | failed — straight from the row. */
   status: string;
   /** The customer's own pause switch (`mailboxes.is_active`). */
@@ -172,7 +174,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       ? await client
           .from("sending_accounts")
           .select(
-            "id, from_email, from_name, paused, customer_enabled, health_score, hourly_limit, daily_limit, sent_today, last_sent_at, warmup_status, warmup_daily_target, spf_status, dkim_status, dmarc_status, mx_status",
+            "id, from_email, from_name, reply_to, paused, customer_enabled, health_score, hourly_limit, daily_limit, sent_today, last_sent_at, warmup_status, warmup_daily_target, spf_status, dkim_status, dmarc_status, mx_status",
           )
           .eq("workspace_id", data.workspaceId)
           .in("from_email", emails)
@@ -182,6 +184,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
       id: string;
       from_email: string;
       from_name: string | null;
+      reply_to: string | null;
       paused: boolean | null;
       customer_enabled: boolean | null;
       health_score: number | null;
@@ -286,6 +289,7 @@ export const listWorkspaceMailboxes = createServerFn({ method: "GET" })
         id: row.id,
         email: row.email_address,
         displayName: row.display_name ?? account?.from_name ?? null,
+        replyTo: account?.reply_to ?? null,
         status: row.status,
         isActive: row.is_active !== false,
         smtpHost: row.smtp_host ?? null,
@@ -566,6 +570,28 @@ export const setWorkspaceMailboxSenderName = createServerFn({ method: "POST" })
     const row = (updated ?? [])[0] as { display_name: string | null } | undefined;
     if (!row) throw new Error("That mailbox could not be found.");
     return { displayName: row.display_name };
+  });
+
+/** RLS-backed update to the existing one-per-address sending record. */
+export const setWorkspaceMailboxReplyTo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid(), replyTo: mailboxReplyToSchema }).strict().parse(input))
+  .handler(async ({ data, context }) => {
+    const client = context.supabase as Client;
+    const { data: mailbox, error: readError } = await client.from("mailboxes")
+      .select("id, workspace_id, email_address").eq("id", data.id).maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!mailbox) throw new Error("That mailbox could not be found.");
+    const { data: updated, error } = await client.from("sending_accounts")
+      .update({ reply_to: data.replyTo || null })
+      .eq("workspace_id", mailbox.workspace_id).eq("from_email", mailbox.email_address)
+      .select("id, reply_to").maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!updated) throw new Error("You cannot change this mailbox, or its sending account is not ready yet.");
+    const { data: receiver } = data.replyTo ? await client.from("mailboxes")
+      .select("id").eq("workspace_id", mailbox.workspace_id).eq("email_address", data.replyTo)
+      .eq("status", "connected").eq("is_active", true).maybeSingle() : { data: null };
+    return { replyTo: updated.reply_to as string | null, receivingMailboxConnected: !data.replyTo || Boolean(receiver) };
   });
 
 export type MailboxDeletionCheck = {
