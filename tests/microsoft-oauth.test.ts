@@ -26,7 +26,16 @@ describe("Microsoft mailbox OAuth preparation", () => {
   it("rejects arbitrary redirect destinations and tenant URL injection", () => {
     expect(() => microsoftConfig({ ...config, redirectUri: "https://evil.example/callback" })).toThrow();
     expect(() => microsoftConfig({ ...config, tenantId: "../../evil" })).toThrow();
-    expect(() => microsoftConfig({ ...config, tenantId: "common" })).toThrow();
+    expect(() => microsoftConfig({ ...config, tenantId: "common/../organizations" })).toThrow();
+    expect(() => microsoftConfig({ ...config, tenantId: "" })).toThrow();
+  });
+  it("accepts a single-tenant directory id and the multitenant endpoint aliases", async () => {
+    for (const tenantId of ["44444444-4444-4444-8444-444444444444", "organizations", "common"]) {
+      const scoped = microsoftConfig({ ...config, tenantId });
+      expect(scoped.tenantId).toBe(tenantId);
+      const prepared = await prepareMicrosoftConsent(scoped, userId, workspaceId, now);
+      expect(new URL(prepared.authorizationUrl).pathname).toBe(`/${tenantId}/oauth2/v2.0/authorize`);
+    }
   });
   it("requests exactly the seven delegated scopes, production callback and S256 code flow", async () => {
     const { prepared, tx } = await transaction();

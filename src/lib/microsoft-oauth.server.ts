@@ -13,7 +13,8 @@ export const TRANSACTION_SECONDS = 600;
 const configSchema = z.object({
   clientId: z.string().uuid(),
   clientSecret: z.string().min(1),
-  tenantId: z.union([z.string().uuid(), z.literal("organizations")]),
+  // Fixed allowlist: a single-tenant directory id, or Microsoft's well-known multitenant endpoints.
+  tenantId: z.union([z.string().uuid(), z.enum(["organizations", "common"])]),
   redirectUri: z.literal(MICROSOFT_REDIRECT_URI),
 });
 export type MicrosoftConfig = z.infer<typeof configSchema>;

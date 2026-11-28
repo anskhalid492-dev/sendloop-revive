@@ -25,7 +25,7 @@ Configure these later through **Project Settings → Secrets**, never committed 
 |---|---|
 | `MICROSOFT_CLIENT_ID` | Application (client) ID from your registration Overview |
 | `MICROSOFT_CLIENT_SECRET` | Client secret **Value** from Certificates & secrets |
-| `MICROSOFT_TENANT_ID` | `organizations` for multitenant Microsoft 365; Directory (tenant) ID for single tenant |
+| `MICROSOFT_TENANT_ID` | Directory (tenant) ID (a GUID) from the app's Overview, or the endpoint alias `organizations` (work/school accounts, multitenant) or `common` (multitenant including personal accounts). Paste the value alone: no spaces, quotes or line breaks. |
 | `MICROSOFT_REDIRECT_URI` | `https://munchreach.com/api/public/integrations/microsoft/callback` |
 
 None of the four settings was present when inspected. No credentials were requested, fabricated, saved or committed during preparation.
